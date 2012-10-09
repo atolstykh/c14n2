@@ -1,0 +1,9 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+<suite name="Suite" >
+  <test name="Test" preserve-order="true">
+    <classes>
+      <class name="ru.relex.c14n2.CanonicalizerTest" />
+    </classes>
+  </test>
+</suite>
+

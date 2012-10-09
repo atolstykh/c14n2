@@ -1,0 +1,14 @@
+# Old temorary source copies
+*.orig
+*~
+
+classes
+target
+velocity.log
+
+#for Eclipse
+.settings
+.classpath
+.project
+.metadata
+
