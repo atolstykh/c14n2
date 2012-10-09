@@ -6,152 +6,176 @@ import java.io.FileInputStream;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.testng.Assert;
+import org.testng.annotations.Test;
 import org.w3c.dom.Document;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
 
-public class CanonicalizerTest extends TestCase {
+public class CanonicalizerTest{
 
-	public CanonicalizerTest(String testName) {
-		super(testName);
-	}
-
-	public static Test suite() {
-		return new TestSuite(CanonicalizerTest.class);
-	}
-
+	@Test
 	public void testN1Default() {
-		assertTrue(processTest("inC14N1", "c14nDefault"));
+		Assert.assertTrue(processTest("inC14N1", "c14nDefault"));
 	}
 
+	@Test
 	public void testN1Comment() {
-		assertTrue(processTest("inC14N1", "c14nComment"));
+		Assert.assertTrue(processTest("inC14N1", "c14nComment"));
 	}
 
+	@Test
 	public void testN2Default() {
-		assertTrue(processTest("inC14N2", "c14nDefault"));
+		Assert.assertTrue(processTest("inC14N2", "c14nDefault"));
 	}
 
+	@Test
 	public void testN2Trim() {
-		assertTrue(processTest("inC14N2", "c14nTrim"));
+		Assert.assertTrue(processTest("inC14N2", "c14nTrim"));
 	}
 
+	@Test
 	public void testN21Default() {
-		assertTrue(processTest("inC14N2_1", "c14nDefault"));
+		Assert.assertTrue(processTest("inC14N2_1", "c14nDefault"));
 	}
 
+	@Test
 	public void testN21Trim() {
-		assertTrue(processTest("inC14N2_1", "c14nTrim"));
+		Assert.assertTrue(processTest("inC14N2_1", "c14nTrim"));
 	}
 
+	@Test
 	public void testN3Default() {
-		assertTrue(processTest("inC14N3", "c14nDefault"));
+		Assert.assertTrue(processTest("inC14N3", "c14nDefault"));
 	}
 
+	@Test
 	public void testN3Prefix() {
-		assertTrue(processTest("inC14N3", "c14nPrefix"));
+		Assert.assertTrue(processTest("inC14N3", "c14nPrefix"));
 	}
 
+	@Test
 	public void testN3Trim() {
-		assertTrue(processTest("inC14N3", "c14nTrim"));
+		Assert.assertTrue(processTest("inC14N3", "c14nTrim"));
 	}
 
+	@Test
 	public void testN4Default() {
-		assertTrue(processTest("inC14N4", "c14nDefault"));
+		Assert.assertTrue(processTest("inC14N4", "c14nDefault"));
 	}
 
+	@Test
 	public void testN4Trim() {
-		assertTrue(processTest("inC14N4", "c14nTrim"));
+		Assert.assertTrue(processTest("inC14N4", "c14nTrim"));
 	}
 
+	@Test
 	public void testN5Default() {
-		assertTrue(processTest("inC14N5", "c14nDefault"));
+		Assert.assertTrue(processTest("inC14N5", "c14nDefault"));
 	}
 
+	@Test
 	public void testN5Trim() {
-		assertTrue(processTest("inC14N5", "c14nTrim"));
+		Assert.assertTrue(processTest("inC14N5", "c14nTrim"));
 	}
 
+	@Test
 	public void testN6Default() {
-		assertTrue(processTest("inC14N6", "c14nDefault"));
+		Assert.assertTrue(processTest("inC14N6", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsPushdownDefault() {
-		assertTrue(processTest("inNsPushdown", "c14nDefault"));
+		Assert.assertTrue(processTest("inNsPushdown", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsPushdownPrefix() {
-		assertTrue(processTest("inNsPushdown", "c14nPrefix"));
+		Assert.assertTrue(processTest("inNsPushdown", "c14nPrefix"));
 	}
 
+	@Test
 	public void testNsDefaultDefault() {
-		assertTrue(processTest("inNsDefault", "c14nDefault"));
+		Assert.assertTrue(processTest("inNsDefault", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsDefaultPrefix() {
-		assertTrue(processTest("inNsDefault", "c14nPrefix"));
+		Assert.assertTrue(processTest("inNsDefault", "c14nPrefix"));
 	}
 
+	@Test
 	public void testNsSortDefault() {
-		assertTrue(processTest("inNsSort", "c14nDefault"));
+		Assert.assertTrue(processTest("inNsSort", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsSortPrefix() {
-		assertTrue(processTest("inNsSort", "c14nPrefix"));
+		Assert.assertTrue(processTest("inNsSort", "c14nPrefix"));
 	}
 
+	@Test
 	public void testNsRedeclDefault() {
-		assertTrue(processTest("inNsRedecl", "c14nDefault"));
+		Assert.assertTrue(processTest("inNsRedecl", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsRedeclPrefix() {
-		assertTrue(processTest("inNsRedecl", "c14nPrefix"));
+		Assert.assertTrue(processTest("inNsRedecl", "c14nPrefix"));
 	}
 
+	@Test
 	public void testNsSuperfluousDefault() {
-		assertTrue(processTest("inNsSuperfluous", "c14nDefault"));
+		Assert.assertTrue(processTest("inNsSuperfluous", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsSuperfluousPrefix() {
-		assertTrue(processTest("inNsSuperfluous", "c14nPrefix"));
+		Assert.assertTrue(processTest("inNsSuperfluous", "c14nPrefix"));
 	}
 
+	@Test
 	public void testNsXmlDefault() {
-		assertTrue(processTest("inNsXml", "c14nDefault"));
+		Assert.assertTrue(processTest("inNsXml", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsXmlPrefix() {
-		assertTrue(processTest("inNsXml", "c14nPrefix"));
+		Assert.assertTrue(processTest("inNsXml", "c14nPrefix"));
 	}
 
+	@Test
 	public void testNsXmlQname() {
-		assertTrue(processTest("inNsXml", "c14nQname"));
+		Assert.assertTrue(processTest("inNsXml", "c14nQname"));
 	}
 
+	@Test
 	public void testNsXmlPrefixQname() {
-		assertTrue(processTest("inNsXml", "c14nPrefixQname"));
+		Assert.assertTrue(processTest("inNsXml", "c14nPrefixQname"));
 	}
 
+	@Test
 	public void testNsContentDefault() {
-		assertTrue(processTest("inNsContent", "c14nDefault"));
+		Assert.assertTrue(processTest("inNsContent", "c14nDefault"));
 	}
 
+	@Test
 	public void testNsContentQnameElem() {
-		assertTrue(processTest("inNsContent", "c14nQnameElem"));
+		Assert.assertTrue(processTest("inNsContent", "c14nQnameElem"));
 	}
 
+	@Test
 	public void testNsContentQnameXpathElem() {
-		assertTrue(processTest("inNsContent", "c14nQnameXpathElem"));
+		Assert.assertTrue(processTest("inNsContent", "c14nQnameXpathElem"));
 	}
 
+	@Test
 	public void testNsContentPrefixQnameXPathElem() {
-		assertTrue(processTest("inNsContent", "c14nPrefixQnameXPathElem"));
+		Assert.assertTrue(processTest("inNsContent", "c14nPrefixQnameXPathElem"));
 	}
 
+	@Test
 	public void testRC242Default() {
-		assertTrue(processTest("inRC2_4_2", "c14nDefault"));
+		Assert.assertTrue(processTest("inRC2_4_2", "c14nDefault"));
 	}
 
 	private static boolean processTest(String inFileName, String paramName) {
