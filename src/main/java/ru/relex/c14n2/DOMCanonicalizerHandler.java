@@ -16,12 +16,12 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
 class DOMCanonicalizerHandler {
-	private static final Logger LOGGER = Logger
-			.getLogger(DOMCanonicalizerHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DOMCanonicalizerHandler.class);
 
 	private static final String DEFAULT_NS = "";
 	private static final String NS = "xmlns";
@@ -63,7 +63,7 @@ class DOMCanonicalizerHandler {
 	}
 
 	protected void processElement(Node node) {
-		LOGGER.debug("processElement:" + node);
+		LOGGER.debug("processElement: {}", node);
 
 		if (getNodeDepth(node) == 1) {
 			bStart = false;
@@ -499,7 +499,7 @@ class DOMCanonicalizerHandler {
 	}
 
 	protected void processText(Node node) {
-		LOGGER.debug("processText:" + node);
+		LOGGER.debug("processText: {}" , node);
 		if (getNodeDepth(node) < 2) {
 			return;
 		}
@@ -614,7 +614,7 @@ class DOMCanonicalizerHandler {
 	}
 
 	protected void processPI(Node node) {
-		LOGGER.debug("processPI:" + node);
+		LOGGER.debug("processPI: {}" ,node);
 		String nodeName = node.getNodeName();
 		String nodeValue = node.getNodeValue() != null ? node.getNodeValue()
 				: "";
@@ -632,7 +632,7 @@ class DOMCanonicalizerHandler {
 	}
 
 	protected void processComment(Node node) {
-		LOGGER.debug("processComment:" + node);
+		LOGGER.debug("processComment: {}",node);
 		if (parameters.isIgnoreComments())
 			return;
 
