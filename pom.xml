@@ -12,13 +12,14 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <maven.compiler.source>1.6</maven.compiler.source>
+    <maven.compiler.target>1.6</maven.compiler.target>
     <maven-surefire-plugin.version>2.5</maven-surefire-plugin.version>    
     <org-uncommons-reporing.version>1.1.2</org-uncommons-reporing.version>
     <guice.version>3.0</guice.version>
     <testng.version>6.2.1</testng.version>
     <slf4j.version>1.6.4</slf4j.version>
+    <xalan.version>2.7.1</xalan.version>
    </properties>
   <build>
     <plugins>
@@ -95,5 +96,10 @@
       <version>${slf4j.version}</version>
       <scope>test</scope>
     </dependency>
- </dependencies>
+   <dependency>
+   	<groupId>xalan</groupId>
+   	<artifactId>xalan</artifactId>
+    <version>${xalan.version}</version>
+   </dependency>
+  </dependencies>
 </project>

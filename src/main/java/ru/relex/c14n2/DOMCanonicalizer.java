@@ -8,80 +8,131 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/**
+ *
+ */
 public class DOMCanonicalizer {
 
-	private DOMCanonicalizerHandler canonicalizer = null;
-	private List<Node> nodes = new ArrayList<Node>();
+  private DOMCanonicalizerHandler canonicalizer = null;
+  private List<Node> nodes = new ArrayList<Node>();
 
-	public DOMCanonicalizer(Document doc, Parameters params) throws Exception {
-		this.nodes.add(doc);
-		StringBuffer sb = new StringBuffer();
-		canonicalizer = new DOMCanonicalizerHandler(params, sb);
-	}
+  /**
+   * @param doc
+   * @param params
+   * @throws Exception
+   */
+  public DOMCanonicalizer(Document doc, Parameters params) throws Exception {
+    this(doc, null, params);
+  }
 
-	public DOMCanonicalizer(List<Element> elements, Parameters params)
-			throws Exception {
-		this.nodes.addAll(elements);
-		StringBuffer sb = new StringBuffer();
-		canonicalizer = new DOMCanonicalizerHandler(params, sb);
-	}
+  /**
+   * @param doc
+   * @param excludeList
+   * @param params
+   * @throws Exception
+   */
+  public DOMCanonicalizer(Document doc, List<Node> excludeList,
+      Parameters params) throws Exception {
+    this.nodes.add(doc);
+    StringBuffer sb = new StringBuffer();
+    canonicalizer = new DOMCanonicalizerHandler(params, excludeList, sb);
+  }
 
-	public String canonicalize() {
-		for (Node node : nodes)
-			process(node);
-		return canonicalizer.getOutputBlock().toString();
-	}
+  /**
+   * @param elements
+   * @param params
+   * @throws Exception
+   */
+  public DOMCanonicalizer(List<Element> elements, Parameters params)
+      throws Exception {
+    this.nodes.addAll(elements);
+    StringBuffer sb = new StringBuffer();
+    canonicalizer = new DOMCanonicalizerHandler(params, null, sb);
+  }
 
-	private void process(Node node) {
-		switch (node.getNodeType()) {
-		case Node.ELEMENT_NODE:
-			processElement(node);
-			break;
-		case Node.TEXT_NODE:
-			processText(node);
-			break;
-		case Node.PROCESSING_INSTRUCTION_NODE:
-			processPI(node);
-			break;
-		case Node.COMMENT_NODE:
-			processComment(node);
-			break;
-		case Node.CDATA_SECTION_NODE:
-			processCData(node);
-			break;
-		}
-		if (node.hasChildNodes()) {
-			NodeList nl = node.getChildNodes();
-			for (int i = 0; i < nl.getLength(); i++)
-				process(nl.item(i));
-		}
+  /**
+   * @return
+   */
+  public String canonicalize() {
+    for (Node node : nodes)
+      process(node);
+    return canonicalizer.getOutputBlock().toString();
+  }
 
-		if (node.getNodeType() == Node.ELEMENT_NODE) {
-			processEndElement(node);
-		}
-	}
+  /**
+   * @param node
+   */
+  private void process(Node node) {
+    if (canonicalizer.isInExcludeList(node))
+      return;
 
-	private void processElement(Node node) {
-		canonicalizer.processElement(node);
-	}
+    switch (node.getNodeType()) {
+    case Node.ELEMENT_NODE:
+      processElement(node);
+      break;
+    case Node.TEXT_NODE:
+      processText(node);
+      break;
+    case Node.PROCESSING_INSTRUCTION_NODE:
+      processPI(node);
+      break;
+    case Node.COMMENT_NODE:
+      processComment(node);
+      break;
+    case Node.CDATA_SECTION_NODE:
+      processCData(node);
+      break;
+    }
+    if (node.hasChildNodes()) {
+      NodeList nl = node.getChildNodes();
+      for (int i = 0; i < nl.getLength(); i++)
+        process(nl.item(i));
+    }
 
-	private void processText(Node node) {
-		canonicalizer.processText(node);
-	}
+    if (node.getNodeType() == Node.ELEMENT_NODE) {
+      processEndElement(node);
+    }
+  }
 
-	private void processPI(Node node) {
-		canonicalizer.processPI(node);
-	}
+  /**
+   * @param node
+   */
+  private void processElement(Node node) {
+    canonicalizer.processElement(node);
+  }
 
-	private void processComment(Node node) {
-		canonicalizer.processComment(node);
-	}
+  /**
+   * @param node
+   */
+  private void processText(Node node) {
+    canonicalizer.processText(node);
+  }
 
-	private void processCData(Node node) {
-		canonicalizer.processCData(node);
-	}
+  /**
+   * @param node
+   */
+  private void processPI(Node node) {
+    canonicalizer.processPI(node);
+  }
 
-	private void processEndElement(Node node) {
-		canonicalizer.processEndElement(node);
-	}
+  /**
+   * @param node
+   */
+  private void processComment(Node node) {
+    canonicalizer.processComment(node);
+  }
+
+  /**
+   * @param node
+   */
+  private void processCData(Node node) {
+    canonicalizer.processCData(node);
+  }
+
+  /**
+   * @param node
+   */
+  private void processEndElement(Node node) {
+    canonicalizer.processEndElement(node);
+  }
 }
