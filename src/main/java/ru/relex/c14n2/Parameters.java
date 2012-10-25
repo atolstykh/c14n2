@@ -10,7 +10,6 @@ public class Parameters {
   private boolean ignoreComments = true;
   private boolean trimTextNodes = false;
   private String prefixRewrite = NONE;
-  private boolean sortAttributes = true;
   private List<QNameAwareParameter> QnameAwareAttributes = new ArrayList<QNameAwareParameter>();
   private List<QNameAwareParameter> QnameAwareElements = new ArrayList<QNameAwareParameter>();
   private List<QNameAwareParameter> QnameAwareXPathElements = new ArrayList<QNameAwareParameter>();
@@ -37,14 +36,6 @@ public class Parameters {
 
   public void setPrefixRewrite(String prefixRewrite) {
     this.prefixRewrite = prefixRewrite;
-  }
-
-  public boolean isSortAttributes() {
-    return sortAttributes;
-  }
-
-  public void setSortAttributes(boolean sortAttributes) {
-    this.sortAttributes = sortAttributes;
   }
 
   public List<QNameAwareParameter> getQnameAwareAttributes() {

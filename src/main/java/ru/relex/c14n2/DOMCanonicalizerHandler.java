@@ -14,6 +14,7 @@ import org.apache.xpath.compiler.XPathParser;
 import org.apache.xpath.objects.XString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
 
 class DOMCanonicalizerHandler {
@@ -333,7 +334,11 @@ class DOMCanonicalizerHandler {
   }
 
   protected boolean isInExcludeList(Node node) {
-    if (excludeList != null && excludeList.contains(node))
+    if (excludeList != null
+        && excludeList.contains(node)
+        && (node.getNodeType() == Node.ELEMENT_NODE || node instanceof Attr)
+        && !(node instanceof Attr && (NS.equals(getNodePrefix(node)) || XML
+            .equals(getNodePrefix(node)))))
       return true;
     return false;
   }
@@ -419,27 +424,25 @@ class DOMCanonicalizerHandler {
       }
     }
 
-    if (parameters.isSortAttributes()) {
-      Collections.sort(outAttrsList, new Comparator<Attribute>() {
-        public int compare(Attribute x, Attribute y) {
-          String x_uri, y_uri;
-          if (XML.equals(x.getPrefix())) {
-            x_uri = node.lookupNamespaceURI(XML);
-          } else {
-            NamespaceContextParams x_stack = getLastElement(x.getPrefix());
-            x_uri = x_stack != null ? x_stack.getUri() : "";
-          }
-          if (XML.equals(y.getPrefix())) {
-            y_uri = node.lookupNamespaceURI(XML);
-          } else {
-            NamespaceContextParams y_stack = getLastElement(y.getPrefix());
-            y_uri = y_stack != null ? y_stack.getUri() : "";
-          }
-          return String.format("%s:%s", x_uri, x.getLocalName()).compareTo(
-              String.format("%s:%s", y_uri, y.getLocalName()));
+    Collections.sort(outAttrsList, new Comparator<Attribute>() {
+      public int compare(Attribute x, Attribute y) {
+        String x_uri, y_uri;
+        if (XML.equals(x.getPrefix())) {
+          x_uri = node.lookupNamespaceURI(XML);
+        } else {
+          NamespaceContextParams x_stack = getLastElement(x.getPrefix());
+          x_uri = x_stack != null ? x_stack.getUri() : "";
         }
-      });
-    }
+        if (XML.equals(y.getPrefix())) {
+          y_uri = node.lookupNamespaceURI(XML);
+        } else {
+          NamespaceContextParams y_stack = getLastElement(y.getPrefix());
+          y_uri = y_stack != null ? y_stack.getUri() : "";
+        }
+        return String.format("%s:%s", x_uri, x.getLocalName()).compareTo(
+            String.format("%s:%s", y_uri, y.getLocalName()));
+      }
+    });
 
     return outAttrsList;
   }
@@ -507,7 +510,7 @@ class DOMCanonicalizerHandler {
             }
         }
       }
-    } else if (parameters.isSortAttributes()) {
+    } else {
       Collections.sort(outNSList, new Comparator<NamespaceContextParams>() {
         public int compare(NamespaceContextParams x, NamespaceContextParams y) {
           return x.getPrefix().compareTo(y.getPrefix());
@@ -629,9 +632,12 @@ class DOMCanonicalizerHandler {
     text = text.replace("<", "&lt;");
     if (!bAttr)
       text = text.replace(">", "&gt;");
-    else
+    else {
       text = text.replace("\"", "&quot;");
-    text = text.replace("#xD", "&#xD;"); // x9 xA
+      text = text.replace("#xA", "&#xA;");
+      text = text.replace("#x9", "&#x9;");
+    }
+    text = text.replace("#xD", "&#xD;");
     return text;
   }
 

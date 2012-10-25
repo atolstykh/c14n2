@@ -10,7 +10,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -220,10 +223,37 @@ public class CanonicalizerTest {
           public List<Node> getExcludeList(Document doc) {
             NodeList nl = doc.getChildNodes();
             List<Node> nodes = new ArrayList<Node>();
-            nodes.add(nl.item(1).getChildNodes().item(9).getAttributes()
-                .item(0));
-            nodes.add(nl.item(1).getChildNodes().item(9).getAttributes()
-                .item(1));
+            NamedNodeMap e5Attrs = nl.item(1).getChildNodes().item(9)
+                .getAttributes();
+            String[] names = new String[] { "a:attr", "attr" };
+            for (String name : names) {
+              nodes.add(e5Attrs.getNamedItem(name));
+            }
+            return nodes;
+          }
+        }));
+  }
+
+  @Test
+  public void testN3DefaultExcl2() {
+    Assert.assertTrue(processTest("inC14N3", "c14nDefault",
+        new ICanonicalizerExcludeList() {
+
+          @Override
+          public String getExcludeListName() {
+            return "excl2";
+          }
+
+          @Override
+          public List<Node> getExcludeList(Document doc) {
+            NodeList nl = doc.getChildNodes();
+            List<Node> nodes = new ArrayList<Node>();
+            NamedNodeMap e5Attrs = nl.item(1).getChildNodes().item(9)
+                .getAttributes();
+            String[] names = new String[] { "a:attr", "attr", "xmlns:a" };
+            for (String name : names) {
+              nodes.add(e5Attrs.getNamedItem(name));
+            }
             return nodes;
           }
         }));
@@ -233,6 +263,85 @@ public class CanonicalizerTest {
   public void testNsContent1PrefixQnameXPathElem() {
     Assert.assertTrue(processTest("inNsContent_1", "c14nPrefixQnameXPathElem"));
   }
+
+  @Test
+  public void testN22TrimExcl2() {
+    Assert.assertTrue(processTest("inC14N2_2", "c14nTrim",
+        new ICanonicalizerExcludeList() {
+
+          @Override
+          public String getExcludeListName() {
+            return "excl2";
+          }
+
+          @Override
+          public List<Node> getExcludeList(Document doc) {
+            NodeList nl = doc.getChildNodes();
+            List<Node> nodes = new ArrayList<Node>();
+            Node dirtyNode = nl.item(0).getChildNodes().item(3);
+            // "xml:" attribute
+            nodes.add(dirtyNode.getAttributes().item(0));
+            // text node
+            nodes.add(dirtyNode.getChildNodes().item(0));
+            return nodes;
+          }
+        }));
+  }
+
+  @Test
+  public void testWsseDefault() {
+    Assert.assertTrue(processTest("inWsse", "c14nDefault"));
+  }
+
+  @Test
+  public void testWssePrefix() {
+    Assert.assertTrue(processTest("inWsse", "c14nPrefix"));
+  }
+
+  @Test
+  public void testFlyXmlDefault() {
+    try {
+      DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+      DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+      Document doc = dBuilder.newDocument();
+      
+      Node root = doc.createElement("doc");
+      doc.appendChild(root);
+
+      Element n1 = doc.createElement("b:doc1");
+      root.appendChild(n1);
+
+      Attr n1a1 = doc.createAttribute("xmlns:a");
+      n1a1.setValue("http://a");
+      n1.setAttributeNode(n1a1);
+      Attr n1a2 = doc.createAttribute("xmlns:b");
+      n1a2.setValue("http://b");
+      n1.setAttributeNode(n1a2);
+      Attr n1a3 = doc.createAttribute("attr");
+      n1a3.setValue("attr1");
+      n1.setAttributeNode(n1a3);
+
+      Element n11 = doc.createElement("doc11");
+      n1.appendChild(n11);
+
+      Attr n11a1 = doc.createAttribute("a:attr");
+      n11a1.setValue("attr2");
+      n11.setAttributeNode(n11a1);
+      
+      String path = CanonicalizerTest.class.getProtectionDomain()
+          .getCodeSource().getLocation().getPath();
+      Assert
+          .assertTrue(processTest(doc, path, "inFlyXml", "c14nDefault", null));
+    } catch (Exception e) {
+      e.printStackTrace();
+      Assert.assertFalse(false);
+    }
+  }
+
+  /* @Test
+  public void testNsDefault1Prefix() {
+    Assert.assertTrue(processTest("inNsDefault_1", "c14nPrefix"));
+  } */
 
   private static boolean processTest(String inFileName, String paramName) {
     return processTest(inFileName, paramName, null);
@@ -249,41 +358,48 @@ public class CanonicalizerTest {
 
       Document doc = dBuilder.parse(new FileInputStream(path + inFileName
           + ".xml"));
-      DOMCanonicalizer rf = iExcludeList != null ? new DOMCanonicalizer(doc,
-          iExcludeList.getExcludeList(doc), getParams(paramName))
-          : new DOMCanonicalizer(doc, getParams(paramName));
-      long l = System.currentTimeMillis();
-      String result = rf.canonicalize();
-      System.out.println("l = " + (System.currentTimeMillis() - l) / 1000.0
-          + "s");
-
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      FileInputStream fis = new FileInputStream(path
-          + "out_"
-          + inFileName
-          + "_"
-          + paramName
-          + (iExcludeList != null ? ("_" + iExcludeList.getExcludeListName())
-              : "") + ".xml");
-      byte[] bytes = new byte[1024];
-      int cnt = 0;
-      while ((cnt = fis.read(bytes)) > -1)
-        baos.write(bytes, 0, cnt);
-      fis.close();
-      baos.flush();
-      baos.close();
-      for (int i = 0; i < result.length(); i++)
-        if (result.charAt(i) != baos.toString("UTF-8").charAt(i)) {
-          i = 0;
-          break;
-        }
-      System.out.println("'" + baos.toString("UTF-8") + "'\n" + "'" + result
-          + "'");// + " " + result.equals(baos.toString("UTF-8")));
-      return result.equals(baos.toString("UTF-8"));
+      return processTest(doc, path, inFileName, paramName, iExcludeList);
     } catch (Throwable e) {
       e.printStackTrace();
     }
     return false;
+  }
+
+  private static boolean processTest(Document doc, String path,
+      String inFileName, String paramName,
+      ICanonicalizerExcludeList iExcludeList) throws Exception {
+    long l = System.currentTimeMillis();
+    DOMCanonicalizer rf = iExcludeList != null ? new DOMCanonicalizer(doc,
+        iExcludeList.getExcludeList(doc), getParams(paramName))
+        : new DOMCanonicalizer(doc, getParams(paramName));
+    String result = rf.canonicalize();
+    System.out
+        .println("l = " + (System.currentTimeMillis() - l) / 1000.0 + "s");
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    FileInputStream fis = new FileInputStream(path
+        + "out_"
+        + inFileName
+        + "_"
+        + paramName
+        + (iExcludeList != null ? ("_" + iExcludeList.getExcludeListName())
+            : "") + ".xml");
+    byte[] bytes = new byte[1024];
+    int cnt = 0;
+    while ((cnt = fis.read(bytes)) > -1)
+      baos.write(bytes, 0, cnt);
+    fis.close();
+    baos.flush();
+    baos.close();
+    for (int i = 0; i < result.length(); i++)
+      if (result.getBytes()[i] != baos.toByteArray()[i]) {
+        System.out.println("Error pos: " + i + " res:" + result.getBytes()[i]
+            + " base:" + baos.toByteArray()[i]);
+        break;
+      }
+    System.out.println("'" + baos.toString("UTF-8") + "'\n" + "'" + result
+        + "'");// + " " + result.equals(baos.toString("UTF-8")));
+    return result.equals(baos.toString("UTF-8"));
   }
 
   private static Parameters getParams(String paramName) {
