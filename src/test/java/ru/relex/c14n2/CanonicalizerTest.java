@@ -338,10 +338,10 @@ public class CanonicalizerTest {
     }
   }
 
-  /* @Test
+  @Test
   public void testNsDefault1Prefix() {
     Assert.assertTrue(processTest("inNsDefault_1", "c14nPrefix"));
-  } */
+  }
 
   private static boolean processTest(String inFileName, String paramName) {
     return processTest(inFileName, paramName, null);

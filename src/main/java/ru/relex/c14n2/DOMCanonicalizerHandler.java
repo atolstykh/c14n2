@@ -605,7 +605,8 @@ class DOMCanonicalizerHandler {
     String prfx = ncp.getPrefix();
     for (int ai = 0; ai < node.getAttributes().getLength(); ai++) {
       Node attr = node.getAttributes().item(ai);
-      if (getNodePrefix(attr).equals(prefix)) {
+      String attrPrfx = getNodePrefix(attr);
+      if (!attrPrfx.isEmpty() && attrPrfx.equals(prefix)) {
         return true;
       }
       if (parameters.getQnameAwareAttributes().size() > 0) {
