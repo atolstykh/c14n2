@@ -299,12 +299,35 @@ public class CanonicalizerTest {
   }
 
   @Test
+  public void testN3PrefixIncl1() {
+    Assert.assertTrue(processTest("inC14N3", "c14nPrefix",
+        new ICanonicalizerExcludeList() {
+
+          @Override
+          public String getExcludeListName() {
+            return "incl1";
+          }
+
+          @Override
+          public List<Node> getIncludeList(Document doc) {
+            List<Node> nodes = new ArrayList<Node>();
+            NodeList nl = doc.getChildNodes().item(1).getChildNodes();
+            // e3
+            nodes.add(nl.item(5));
+            // e7
+            nodes.add(nl.item(11).getChildNodes().item(1));
+            return nodes;
+          }
+        }));
+  }
+
+  @Test
   public void testFlyXmlDefault() {
     try {
       DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
       Document doc = dBuilder.newDocument();
-      
+
       Node root = doc.createElement("doc");
       doc.appendChild(root);
 
@@ -327,7 +350,7 @@ public class CanonicalizerTest {
       Attr n11a1 = doc.createAttribute("a:attr");
       n11a1.setValue("attr2");
       n11.setAttributeNode(n11a1);
-      
+
       String path = CanonicalizerTest.class.getProtectionDomain()
           .getCodeSource().getLocation().getPath();
       Assert
@@ -367,12 +390,29 @@ public class CanonicalizerTest {
 
   private static boolean processTest(Document doc, String path,
       String inFileName, String paramName,
-      ICanonicalizerExcludeList iExcludeList) throws Exception {
+      ICanonicalizerExcludeList iExInCludeList) throws Exception {
     long l = System.currentTimeMillis();
-    DOMCanonicalizer rf = iExcludeList != null ? new DOMCanonicalizer(doc,
-        iExcludeList.getExcludeList(doc), getParams(paramName))
-        : new DOMCanonicalizer(doc, getParams(paramName));
-    String result = rf.canonicalize();
+    String result = "";
+    List<Node> includeList = iExInCludeList != null ? iExInCludeList
+        .getIncludeList(doc) : null;
+    List<Node> excludeList = iExInCludeList != null ? iExInCludeList
+        .getExcludeList(doc) : null;
+    if (includeList != null) {
+      if (excludeList != null) {
+        result = DOMCanonicalizer.canonicalize(doc, includeList, excludeList,
+            getParams(paramName));
+      } else {
+        result = DOMCanonicalizer.canonicalize(doc, includeList,
+            getParams(paramName));
+      }
+    } else {
+      if (excludeList != null) {
+        result = DOMCanonicalizer.canonicalize(doc, null, excludeList,
+            getParams(paramName));
+      } else {
+        result = DOMCanonicalizer.canonicalize(doc, getParams(paramName));
+      }
+    }
     System.out
         .println("l = " + (System.currentTimeMillis() - l) / 1000.0 + "s");
 
@@ -382,7 +422,7 @@ public class CanonicalizerTest {
         + inFileName
         + "_"
         + paramName
-        + (iExcludeList != null ? ("_" + iExcludeList.getExcludeListName())
+        + (excludeList != null || includeList != null ? ("_" + iExInCludeList.getExcludeListName())
             : "") + ".xml");
     byte[] bytes = new byte[1024];
     int cnt = 0;
@@ -391,14 +431,16 @@ public class CanonicalizerTest {
     fis.close();
     baos.flush();
     baos.close();
+    // boolean b = true;
     for (int i = 0; i < result.length(); i++)
       if (result.getBytes()[i] != baos.toByteArray()[i]) {
         System.out.println("Error pos: " + i + " res:" + result.getBytes()[i]
             + " base:" + baos.toByteArray()[i]);
+        // b = false;
         break;
       }
     System.out.println("'" + baos.toString("UTF-8") + "'\n" + "'" + result
-        + "'");// + " " + result.equals(baos.toString("UTF-8")));
+        + "'");
     return result.equals(baos.toString("UTF-8"));
   }
 

@@ -1,10 +1,11 @@
 package ru.relex.c14n2;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -14,49 +15,131 @@ import org.w3c.dom.NodeList;
 public class DOMCanonicalizer {
 
   private DOMCanonicalizerHandler canonicalizer = null;
+  private Document doc = null;
   private List<Node> nodes = new ArrayList<Node>();
+  private List<Node> includeList = null;
 
   /**
    * @param doc
-   * @param params
-   * @throws Exception
-   */
-  public DOMCanonicalizer(Document doc, Parameters params) throws Exception {
-    this(doc, null, params);
-  }
-
-  /**
-   * @param doc
+   * @param includeList
    * @param excludeList
    * @param params
    * @throws Exception
    */
-  public DOMCanonicalizer(Document doc, List<Node> excludeList,
-      Parameters params) throws Exception {
-    this.nodes.add(doc);
+  private DOMCanonicalizer(Document doc, List<Node> includeList,
+      List<Node> excludeList, Parameters params) throws Exception {
+    this.includeList = includeList != null && includeList.isEmpty() ? null
+        : includeList;
+    this.doc = doc;
     StringBuffer sb = new StringBuffer();
-    canonicalizer = new DOMCanonicalizerHandler(params, excludeList, sb);
+    canonicalizer = new DOMCanonicalizerHandler(params, excludeList != null
+        && excludeList.isEmpty() ? null : excludeList, sb);
   }
 
   /**
-   * @param elements
+   * @param doc
    * @param params
+   * @return
    * @throws Exception
    */
-  public DOMCanonicalizer(List<Element> elements, Parameters params)
+  public static String canonicalize(Document doc, Parameters params)
       throws Exception {
-    this.nodes.addAll(elements);
-    StringBuffer sb = new StringBuffer();
-    canonicalizer = new DOMCanonicalizerHandler(params, null, sb);
+    return canonicalize(doc, null, null, params);
+  }
+
+  /**
+   * @param doc
+   * @param includeList
+   * @param params
+   * @return
+   * @throws Exception
+   */
+  public static String canonicalize(Document doc, List<Node> includeList,
+      Parameters params) throws Exception {
+    return canonicalize(doc, includeList, null, params);
+  }
+
+  /**
+   * @param doc
+   * @param includeList
+   * @param excludeList
+   * @param params
+   * @return
+   * @throws Exception
+   */
+  public static String canonicalize(Document doc, List<Node> includeList,
+      List<Node> excludeList, Parameters params) throws Exception {
+    return new DOMCanonicalizer(doc, includeList, excludeList, params)
+        .canonicalizeSubTree();
   }
 
   /**
    * @return
+   * @throws Exception
    */
-  public String canonicalize() {
-    for (Node node : nodes)
-      process(node);
+  private String canonicalizeSubTree() throws Exception {
+    if (includeList == null) {
+      process(doc);
+    } else {
+      processIncludeList();
+      while (nodes.size() > 0) {
+        process(nodes.get(0));
+      }
+    }
     return canonicalizer.getOutputBlock().toString();
+  }
+
+  /**
+   * 
+   */
+  private void processIncludeList() {
+    List<Node> allNodes = new ArrayList<Node>();
+    for (Node node : includeList) {
+      Node n = node;
+      do {
+        if (!allNodes.contains(n)) {
+          allNodes.add(n);
+        }
+        n = n.getParentNode();
+      } while (n != null);
+    }
+    Collections.sort(allNodes, new Comparator<Node>() {
+      @Override
+      public int compare(Node n1, Node n2) {
+        int l1 = canonicalizer.getNodeDepth(n1);
+        int l2 = canonicalizer.getNodeDepth(n2);
+        if (l1 != l2) {
+          return l1 - l2;
+        } else {
+          Node prnt1 = n1.getParentNode();
+          Node prnt2 = n2.getParentNode();
+          if (prnt1 == null) {
+            return -1;
+          } else if (prnt2 == null) {
+            return 1;
+          }
+          if (prnt1.equals(prnt2)) {
+            NodeList nl = prnt1.getChildNodes();
+            l1 = -1;
+            l2 = -1;
+            for (int i = 0; i < nl.getLength(); i++) {
+              if (n1.equals(nl.item(i))) {
+                l1 = i;
+              } else if (n2.equals(nl.item(i))) {
+                l2 = i;
+              }
+              if (l1 != -1 && l2 != -1) {
+                break;
+              }
+            }
+            return l1 - l2;
+          } else {
+            return compare(prnt1, prnt2);
+          }
+        }
+      }
+    });
+    nodes = allNodes;
   }
 
   /**
@@ -68,71 +151,36 @@ public class DOMCanonicalizer {
 
     switch (node.getNodeType()) {
     case Node.ELEMENT_NODE:
-      processElement(node);
+      canonicalizer.processElement(node);
       break;
     case Node.TEXT_NODE:
-      processText(node);
+      canonicalizer.processText(node);
       break;
     case Node.PROCESSING_INSTRUCTION_NODE:
-      processPI(node);
+      canonicalizer.processPI(node);
       break;
     case Node.COMMENT_NODE:
-      processComment(node);
+      canonicalizer.processComment(node);
       break;
     case Node.CDATA_SECTION_NODE:
-      processCData(node);
+      canonicalizer.processCData(node);
       break;
     }
+    if (nodes.size() > 0 && node.equals(nodes.get(0))) {
+      nodes.remove(0);
+    }
     if (node.hasChildNodes()) {
+      boolean b = nodes.size() > 0 && node.equals(nodes.get(0).getParentNode());
       NodeList nl = node.getChildNodes();
-      for (int i = 0; i < nl.getLength(); i++)
-        process(nl.item(i));
+      for (int i = 0; i < nl.getLength(); i++) {
+        if (!b || (nodes.size() > 0 && nl.item(i).equals(nodes.get(0)))) {
+          process(nl.item(i));
+        }
+      }
     }
 
     if (node.getNodeType() == Node.ELEMENT_NODE) {
-      processEndElement(node);
+      canonicalizer.processEndElement(node);
     }
-  }
-
-  /**
-   * @param node
-   */
-  private void processElement(Node node) {
-    canonicalizer.processElement(node);
-  }
-
-  /**
-   * @param node
-   */
-  private void processText(Node node) {
-    canonicalizer.processText(node);
-  }
-
-  /**
-   * @param node
-   */
-  private void processPI(Node node) {
-    canonicalizer.processPI(node);
-  }
-
-  /**
-   * @param node
-   */
-  private void processComment(Node node) {
-    canonicalizer.processComment(node);
-  }
-
-  /**
-   * @param node
-   */
-  private void processCData(Node node) {
-    canonicalizer.processCData(node);
-  }
-
-  /**
-   * @param node
-   */
-  private void processEndElement(Node node) {
-    canonicalizer.processEndElement(node);
   }
 }

@@ -343,6 +343,16 @@ class DOMCanonicalizerHandler {
     return false;
   }
 
+  protected int getNodeDepth(Node node) {
+    int i = -1;
+    Node prnt = node;
+    do {
+      i++;
+      prnt = prnt.getParentNode();
+    } while (prnt != null);
+    return i;
+  }
+
   private boolean outputNSInParent(String prfx) {
     for (Entry<String, List<NamespaceContextParams>> en : namespaces.entrySet()) {
       if (!bSequential && !prfx.equals(en.getKey()))
@@ -650,16 +660,6 @@ class DOMCanonicalizerHandler {
     if (idx > -1)
       return name.substring(idx + 1);
     return name;
-  }
-
-  private int getNodeDepth(Node node) {
-    int i = -1;
-    Node prnt = node;
-    do {
-      i++;
-      prnt = prnt.getParentNode();
-    } while (prnt != null);
-    return i;
   }
 
   private NamespaceContextParams getLastElement(String key) {
