@@ -3,6 +3,9 @@ package ru.relex.c14n2;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The representation of the canonicalization algorithm parameters.
+ */
 public class Parameters {
   public static String SEQUENTIAL = "sequential";
   public static String NONE = "none";
@@ -14,6 +17,11 @@ public class Parameters {
   private List<QNameAwareParameter> QnameAwareElements = new ArrayList<QNameAwareParameter>();
   private List<QNameAwareParameter> QnameAwareXPathElements = new ArrayList<QNameAwareParameter>();
 
+  /**
+   * Returns whether to ignore comments during canonicalization.
+   * 
+   * @return Returns true if comments are ignored, false otherwise.
+   */
   public boolean isIgnoreComments() {
     return ignoreComments;
   }
@@ -22,6 +30,12 @@ public class Parameters {
     this.ignoreComments = ignoreComments;
   }
 
+  /**
+   * Returns whether to trim (i.e. remove leading and trailing whitespaces) all
+   * text nodes when canonicalizing.
+   * 
+   * @return Returns true if whitespaces are removed, false otherwise.
+   */
   public boolean isTrimTextNodes() {
     return trimTextNodes;
   }
@@ -30,6 +44,13 @@ public class Parameters {
     this.trimTextNodes = trimTextNodes;
   }
 
+  /**
+   * Defines the mode of replacement prefixes.
+   * 
+   * @return With none, prefixes are left unchanged, with sequential, prefixes
+   *         are changed to "n0", "n1", "n2" ... except the special prefixes
+   *         "xml" and "xmlns" which are left unchanged.
+   */
   public String getPrefixRewrite() {
     return prefixRewrite;
   }
@@ -38,6 +59,13 @@ public class Parameters {
     this.prefixRewrite = prefixRewrite;
   }
 
+  /**
+   * Returns a list of parameters which defines the qualified attribute names
+   * and unqualified attribute names whose entire content must be processed as
+   * QName-valued for the purposes of canonicalization.
+   * 
+   * @return Returns a list
+   */
   public List<QNameAwareParameter> getQnameAwareAttributes() {
     return QnameAwareAttributes;
   }
@@ -47,6 +75,13 @@ public class Parameters {
     QnameAwareAttributes = qnameAwareAttributes;
   }
 
+  /**
+   * Returns a list of parameters which defines the qualified element names
+   * whose entire content must be processed as QName-valued for the purposes of
+   * canonicalization.
+   * 
+   * @return Returns a list
+   */
   public List<QNameAwareParameter> getQnameAwareElements() {
     return QnameAwareElements;
   }
@@ -55,6 +90,13 @@ public class Parameters {
     QnameAwareElements = qnameAwareElements;
   }
 
+  /**
+   * Returns a list of parameters which defines the element names that contain
+   * XPath 1.0 expressions whose entire content must be processed as
+   * QName-valued for the purposes of canonicalization.
+   * 
+   * @return Returns a list
+   */
   public List<QNameAwareParameter> getQnameAwareXPathElements() {
     return QnameAwareXPathElements;
   }

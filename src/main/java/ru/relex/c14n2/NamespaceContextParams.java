@@ -1,5 +1,8 @@
 package ru.relex.c14n2;
 
+/**
+ * The internal representation of the namespace declaration (xmlns attribure).
+ */
 class NamespaceContextParams {
   private String uri = "";
   private String prefix = "";
@@ -7,6 +10,38 @@ class NamespaceContextParams {
   private String newPrefix = "";
   private Boolean hasOutput = null;
 
+  /**
+   * Constructor.
+   * 
+   * @param uri
+   *          URI
+   * @param hasOutput
+   *          output flag
+   * @param newPrefix
+   *          new local name
+   * @param depth
+   *          depth of the node
+   */
+  public NamespaceContextParams(String uri, boolean hasOutput,
+      String newPrefix, int depth) {
+    setUri(uri);
+    setHasOutput(hasOutput);
+    setNewPrefix(newPrefix);
+    setPrefix(newPrefix);
+    setDepth(depth);
+  }
+
+  /**
+   * Constructor.
+   */
+  public NamespaceContextParams() {
+  }
+
+  /**
+   * Returns the URI of this attribute.
+   * 
+   * @return Returns the URI
+   */
   public String getUri() {
     return uri;
   }
@@ -15,6 +50,12 @@ class NamespaceContextParams {
     this.uri = uri;
   }
 
+  /**
+   * Returns whether this declaration in the output.
+   * 
+   * @return Returns true if this declaration is used in output, false
+   *         otherwise.
+   */
   public Boolean isHasOutput() {
     return hasOutput;
   }
@@ -23,6 +64,12 @@ class NamespaceContextParams {
     this.hasOutput = hasOutput;
   }
 
+  /**
+   * Returns the new local name (in "Prefix rewrite" mode) of the qualified name
+   * of this attribute.
+   * 
+   * @return Returns the new local name
+   */
   public String getNewPrefix() {
     return newPrefix;
   }
@@ -31,6 +78,11 @@ class NamespaceContextParams {
     this.newPrefix = newPrefix;
   }
 
+  /**
+   * Returns the depth of the parent node in the DOM tree.
+   * 
+   * @return Returns the depth
+   */
   public int getDepth() {
     return depth;
   }
@@ -39,6 +91,11 @@ class NamespaceContextParams {
     this.depth = depth;
   }
 
+  /**
+   * Returns the local name of the qualified name of this attribute.
+   * 
+   * @return Returns the prefix
+   */
   public String getPrefix() {
     return prefix;
   }
@@ -47,6 +104,9 @@ class NamespaceContextParams {
     this.prefix = prefix;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public NamespaceContextParams clone() {
     NamespaceContextParams ncp = new NamespaceContextParams();
     ncp.depth = depth;
@@ -55,13 +115,5 @@ class NamespaceContextParams {
     ncp.prefix = prefix;
     ncp.uri = uri;
     return ncp;
-  }
-
-  public void set(String uri, boolean hasOutput, String newPrefix, int depth) {
-    setUri(uri);
-    setHasOutput(hasOutput);
-    setNewPrefix(newPrefix);
-    setPrefix(newPrefix);
-    setDepth(depth);
   }
 }

@@ -10,7 +10,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- *
+ * C2N14 canonicalization.
  */
 public class DOMCanonicalizer {
 
@@ -20,26 +20,42 @@ public class DOMCanonicalizer {
   private List<Node> includeList = null;
 
   /**
+   * Constructor.
+   * 
    * @param doc
+   *          DOM document
    * @param includeList
+   *          inclusion list
    * @param excludeList
+   *          exclusion list
    * @param params
+   *          canonicalization parameters
+   * 
    * @throws Exception
    */
   private DOMCanonicalizer(Document doc, List<Node> includeList,
       List<Node> excludeList, Parameters params) throws Exception {
+    if (doc == null) {
+      throw new NullPointerException();
+    }
+
     this.includeList = includeList != null && includeList.isEmpty() ? null
         : includeList;
     this.doc = doc;
     StringBuffer sb = new StringBuffer();
-    canonicalizer = new DOMCanonicalizerHandler(params, excludeList != null
-        && excludeList.isEmpty() ? null : excludeList, sb);
+    canonicalizer = new DOMCanonicalizerHandler(
+        params == null ? new Parameters() : params, excludeList != null
+            && excludeList.isEmpty() ? null : excludeList, sb);
   }
 
   /**
+   * Constructor.
+   * 
    * @param doc
+   *          DOM document
    * @param params
-   * @return
+   *          canonicalization parameters
+   * 
    * @throws Exception
    */
   public static String canonicalize(Document doc, Parameters params)
@@ -48,10 +64,15 @@ public class DOMCanonicalizer {
   }
 
   /**
+   * Constructor.
+   * 
    * @param doc
+   *          DOM document
    * @param includeList
+   *          inclusion list
    * @param params
-   * @return
+   *          canonicalization parameters
+   * 
    * @throws Exception
    */
   public static String canonicalize(Document doc, List<Node> includeList,
@@ -60,11 +81,19 @@ public class DOMCanonicalizer {
   }
 
   /**
+   * Canonicalization method.
+   * 
    * @param doc
+   *          DOM document
    * @param includeList
+   *          inclusion list
    * @param excludeList
+   *          exclusion list
    * @param params
-   * @return
+   *          canonicalization parameters
+   * 
+   * @return Returns the canonical form of an XML document.
+   * 
    * @throws Exception
    */
   public static String canonicalize(Document doc, List<Node> includeList,
@@ -74,7 +103,10 @@ public class DOMCanonicalizer {
   }
 
   /**
-   * @return
+   * Canonicalizing of subtree.
+   * 
+   * @return Returns the canonical form of a subtree.
+   * 
    * @throws Exception
    */
   private String canonicalizeSubTree() throws Exception {
@@ -90,7 +122,7 @@ public class DOMCanonicalizer {
   }
 
   /**
-   * 
+   * Processing (sorting) a inclusion list.
    */
   private void processIncludeList() {
     List<Node> allNodes = new ArrayList<Node>();
@@ -143,7 +175,10 @@ public class DOMCanonicalizer {
   }
 
   /**
+   * Processing a node.
+   * 
    * @param node
+   *          DOM node
    */
   private void process(Node node) {
     if (canonicalizer.isInExcludeList(node))

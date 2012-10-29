@@ -17,6 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
 
+/**
+ * C2N14 canonicalizer.
+ */
 class DOMCanonicalizerHandler {
   private static final Logger LOGGER = LoggerFactory
       .getLogger(DOMCanonicalizerHandler.class);
@@ -27,10 +30,11 @@ class DOMCanonicalizerHandler {
   private static final String XSD = "xsd";
 
   private static final String CF = "&#x%s;";
+  private static final String C = ":";
 
   private List<Node> excludeList;
   private Parameters parameters;
-  private StringBuffer outputBlock;
+  private StringBuffer outputBuffer;
 
   private boolean bStart = true;
   private boolean bEnd = false;
@@ -41,10 +45,20 @@ class DOMCanonicalizerHandler {
 
   private Map<String, NSContext> xpathesNsMap = new HashMap<String, NSContext>();
 
+  /**
+   * Constructor.
+   * 
+   * @param parameters
+   *          canonicalization parameters
+   * @param excludeList
+   *          inclusion list
+   * @param outputBuffer
+   *          output
+   */
   protected DOMCanonicalizerHandler(Parameters parameters,
-      List<Node> excludeList, StringBuffer outputBlock) {
+      List<Node> excludeList, StringBuffer outputBuffer) {
     this.parameters = parameters;
-    this.outputBlock = outputBlock;
+    this.outputBuffer = outputBuffer;
     this.excludeList = excludeList;
     bSequential = parameters.getPrefixRewrite().equals(Parameters.SEQUENTIAL);
 
@@ -63,6 +77,12 @@ class DOMCanonicalizerHandler {
     bEnd = false;
   }
 
+  /**
+   * Prosessing of element node.
+   * 
+   * @param node
+   *          element node
+   */
   protected void processElement(Node node) {
     LOGGER.debug("processElement: {}", node);
 
@@ -132,14 +152,14 @@ class DOMCanonicalizerHandler {
           if (namespaces.containsKey(attrPrfx)) {
             NamespaceContextParams attrPrfxNcp = getLastElement(attrPrfx);
             for (QNameAwareParameter en : parameters.getQnameAwareAttributes()) {
-              if (attrName.equals(en.name)
-                  && en.ns.equals(attrPrfxNcp.getUri())) {
-                int idx = attrValue.indexOf(":");
+              if (attrName.equals(en.getName())
+                  && en.getNs().equals(attrPrfxNcp.getUri())) {
+                int idx = attrValue.indexOf(C);
                 if (idx > -1) {
                   String attr_value_prfx = attrValue.substring(0, idx);
                   if (namespaces.containsKey(attr_value_prfx)) {
                     attrValue = getLastElement(attr_value_prfx).getNewPrefix()
-                        + ":" + attrValue.substring(idx + 1);
+                        + C + attrValue.substring(idx + 1);
                   }
                 }
               }
@@ -158,9 +178,15 @@ class DOMCanonicalizerHandler {
 
     output.append(">");
 
-    outputBlock.append(output);
+    outputBuffer.append(output);
   }
 
+  /**
+   * Completion of processing element node.
+   * 
+   * @param node
+   *          element node
+   */
   protected void processEndElement(Node node) {
     if (isInExcludeList(node))
       return;
@@ -181,9 +207,15 @@ class DOMCanonicalizerHandler {
       bEnd = true;
     }
 
-    outputBlock.append(output);
+    outputBuffer.append(output);
   }
 
+  /**
+   * Prosessing of text node.
+   * 
+   * @param node
+   *          text node
+   */
   protected void processText(Node node) {
     LOGGER.debug("processText: {}", node);
     if (getNodeDepth(node) < 2) {
@@ -225,7 +257,7 @@ class DOMCanonicalizerHandler {
     }
 
     if (parameters.getQnameAwareElements().size() > 0 && bSequential) {
-      if (text.startsWith(XSD + ":")) {
+      if (text.startsWith(XSD + C)) {
         if (namespaces.containsKey(XSD)) {
           Node prntNode = node.getParentNode();
           String nodeName = getLocalName(prntNode);
@@ -233,7 +265,8 @@ class DOMCanonicalizerHandler {
           NamespaceContextParams ncp = getLastElement(XSD);
           NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
           for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
-            if (nodeName.equals(en.name) && en.ns.equals(attrPrfxNcp.getUri())) {
+            if (nodeName.equals(en.getName())
+                && en.getNs().equals(attrPrfxNcp.getUri())) {
               text = ncp.getNewPrefix() + text.substring(XSD.length());
             }
           }
@@ -247,7 +280,7 @@ class DOMCanonicalizerHandler {
       String nodePrefix = getNodePrefix(prntNode);
       NamespaceContextParams ncp = getLastElement(nodePrefix);
       for (QNameAwareParameter en : parameters.getQnameAwareXPathElements()) {
-        if (nodeName.equals(en.name) && ncp.getUri().equals(en.ns)) {
+        if (nodeName.equals(en.getName()) && ncp.getUri().equals(en.getNs())) {
           String nodeText = node.getTextContent();
           NSContext nsContext = xpathesNsMap.get(nodeText);
           List<String> xpathNs = nsContext.getXpathNs();
@@ -267,8 +300,7 @@ class DOMCanonicalizerHandler {
               }
               if (!(obj instanceof XString)
                   && ns.equals(word)
-                  && (i != words.size() - 1 && ":".equals(words
-                      .elementAt(i + 1)))) {
+                  && (i != words.size() - 1 && C.equals(words.elementAt(i + 1)))) {
                 sb.append(getLastElement(word).getNewPrefix());
                 baseTextIdx += word.length();
                 if (it.hasNext())
@@ -288,9 +320,15 @@ class DOMCanonicalizerHandler {
       }
     }
 
-    outputBlock.append(text);
+    outputBuffer.append(text);
   }
 
+  /**
+   * Prosessing of process instruction node.
+   * 
+   * @param node
+   *          process instruction node
+   */
   protected void processPI(Node node) {
     LOGGER.debug("processPI: {}", node);
     String nodeName = node.getNodeName();
@@ -305,9 +343,15 @@ class DOMCanonicalizerHandler {
     if (bStart && getNodeDepth(node) == 1) {
       output.append("\n");
     }
-    outputBlock.append(output);
+    outputBuffer.append(output);
   }
 
+  /**
+   * Prosessing of comment node.
+   * 
+   * @param node
+   *          comment node
+   */
   protected void processComment(Node node) {
     LOGGER.debug("processComment: {}", node);
     if (parameters.isIgnoreComments())
@@ -321,18 +365,38 @@ class DOMCanonicalizerHandler {
     if (bStart && getNodeDepth(node) == 1) {
       output.append("\n");
     }
-    outputBlock.append(output);
+    outputBuffer.append(output);
   }
 
+  /**
+   * Prosessing of CDATA node.
+   * 
+   * @param node
+   *          CDATA node
+   */
   protected void processCData(Node node) {
     LOGGER.debug("processCData:" + node);
-    outputBlock.append(processText(node.getNodeValue(), false));
+    outputBuffer.append(processText(node.getNodeValue(), false));
   }
 
+  /**
+   * Returns an output buffer.
+   * 
+   * @return Returns an output buffer
+   */
   protected StringBuffer getOutputBlock() {
-    return outputBlock;
+    return outputBuffer;
   }
 
+  /**
+   * Returns whether a node in the exclusion list.
+   * 
+   * @param node
+   *          DOM node
+   * 
+   * @return Returns true if a node there is in exclusion list, false -
+   *         otherwise
+   */
   protected boolean isInExcludeList(Node node) {
     if (excludeList != null
         && excludeList.contains(node)
@@ -343,6 +407,14 @@ class DOMCanonicalizerHandler {
     return false;
   }
 
+  /**
+   * Returns a depth of a node in the DOM tree.
+   * 
+   * @param node
+   *          DOM node
+   * 
+   * @return Returns a depth
+   */
   protected int getNodeDepth(Node node) {
     int i = -1;
     Node prnt = node;
@@ -353,6 +425,15 @@ class DOMCanonicalizerHandler {
     return i;
   }
 
+  /**
+   * Returns whether there is a prefix in the parent output.
+   * 
+   * @param prfx
+   *          prefix
+   * 
+   * @return Returns true if a prefix there is in parent output, false -
+   *         otherwise
+   */
   private boolean outputNSInParent(String prfx) {
     for (Entry<String, List<NamespaceContextParams>> en : namespaces.entrySet()) {
       if (!bSequential && !prfx.equals(en.getKey()))
@@ -374,6 +455,12 @@ class DOMCanonicalizerHandler {
     return false;
   }
 
+  /**
+   * Remove unused namespaces from the stack.
+   * 
+   * @param node
+   *          DOM node
+   */
   private void removeNamespaces(Node node) {
     for (String prefix : namespaces.keySet()) {
       List<NamespaceContextParams> nsLevels = namespaces.get(prefix);
@@ -392,6 +479,14 @@ class DOMCanonicalizerHandler {
     }
   }
 
+  /**
+   * Prosessing of node attributes.
+   * 
+   * @param node
+   *          DOM node
+   * 
+   * @return Returns a list of output attributes
+   */
   private List<Attribute> processAttributes(final Node node) {
     List<Attribute> outAttrsList = new ArrayList<Attribute>();
 
@@ -457,6 +552,14 @@ class DOMCanonicalizerHandler {
     return outAttrsList;
   }
 
+  /**
+   * Prosessing of namespace attributes.
+   * 
+   * @param node
+   *          DOM node
+   * 
+   * @return Returns a list of output namespace attributes
+   */
   private List<NamespaceContextParams> processNamespaces(Node node) {
     addNamespaces(node);
 
@@ -530,6 +633,12 @@ class DOMCanonicalizerHandler {
     return outNSList;
   }
 
+  /**
+   * Add namespaces to stack.
+   * 
+   * @param node
+   *          DOM node
+   */
   private void addNamespaces(Node node) {
     for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
       Node attr = node.getAttributes().item(ni);
@@ -553,8 +662,8 @@ class DOMCanonicalizerHandler {
         if (!namespaces.containsKey((prefix))) {
           namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
         }
-        NamespaceContextParams nsp = new NamespaceContextParams();
-        nsp.set(uri, false, prefix, getNodeDepth(node));
+        NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
+            prefix, getNodeDepth(node));
         if (namespaces.get(prefix).size() == 0
             || getNodeDepth(node) != getLastElement(prefix).getDepth())
           namespaces.get(prefix).add(nsp);
@@ -564,6 +673,17 @@ class DOMCanonicalizerHandler {
     }
   }
 
+  /**
+   * Returns whether to show the prefix in the output of the node.
+   * 
+   * @param node
+   *          DOM node
+   * @param prefix
+   *          prefix
+   * 
+   * @return Returns true if prefix is shown in the output of the node, false -
+   *         otherwise.
+   */
   private boolean isPrefixVisible(Node node, String prefix) {
     String nodePrefix = getNodePrefix(node);
     if (nodePrefix.equals(prefix)) {
@@ -575,12 +695,12 @@ class DOMCanonicalizerHandler {
       NamespaceContextParams ncp = getLastElement(prefix);
       String prfx = ncp.getPrefix();
       String childText = node.getTextContent();
-      if (childText != null && childText.startsWith(prfx + ":")
+      if (childText != null && childText.startsWith(prfx + C)
           && node.getChildNodes().getLength() == 1) {
         NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
         for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
-          if (nodeLocalName.equals(en.name)
-              && en.ns.equals(attrPrfxNcp.getUri())) {
+          if (nodeLocalName.equals(en.getName())
+              && en.getNs().equals(attrPrfxNcp.getUri())) {
             return true;
           }
         }
@@ -591,7 +711,8 @@ class DOMCanonicalizerHandler {
       NamespaceContextParams ncp = getLastElement(nodePrefix);
       String childText = node.getTextContent();
       for (QNameAwareParameter en : parameters.getQnameAwareXPathElements()) {
-        if (nodeLocalName.equals(en.name) && ncp.getUri().equals(en.ns)) {
+        if (nodeLocalName.equals(en.getName())
+            && ncp.getUri().equals(en.getNs())) {
           NSContext nsContext = xpathesNsMap.get(childText);
           try {
             if (nsContext == null) {
@@ -621,13 +742,13 @@ class DOMCanonicalizerHandler {
       }
       if (parameters.getQnameAwareAttributes().size() > 0) {
         String attrValue = attr.getNodeValue();
-        if (attrValue.startsWith(prfx + ":")) {
+        if (attrValue.startsWith(prfx + C)) {
           String attrLocalName = getLocalName(attr);
           String attrPrefix = getNodePrefix(attr);
           NamespaceContextParams attrPrfxNcp = getLastElement(attrPrefix);
           for (QNameAwareParameter en : parameters.getQnameAwareAttributes()) {
-            if (attrLocalName.equals(en.name)
-                && en.ns.equals(attrPrfxNcp.getUri())) {
+            if (attrLocalName.equals(en.getName())
+                && en.getNs().equals(attrPrfxNcp.getUri())) {
               return true;
             }
           }
@@ -638,6 +759,16 @@ class DOMCanonicalizerHandler {
     return false;
   }
 
+  /**
+   * Replace special characters.
+   * 
+   * @param text
+   *          input text
+   * @param bAttr
+   *          true if text is attribute value
+   * 
+   * @return replacement text
+   */
   private String processText(String text, boolean bAttr) {
     text = text.replace("&", "&amp;");
     text = text.replace("<", "&lt;");
@@ -652,31 +783,61 @@ class DOMCanonicalizerHandler {
     return text;
   }
 
+  /**
+   * Returns the node local name.
+   * 
+   * @param node
+   *          DOM node
+   * @return Returns local name
+   */
   private String getLocalName(Node node) {
     if (node.getLocalName() != null)
       return node.getLocalName();
     String name = node.getNodeName();
-    int idx = name.indexOf(":");
+    int idx = name.indexOf(C);
     if (idx > -1)
       return name.substring(idx + 1);
     return name;
   }
 
+  /**
+   * Returns parameter by key.
+   * 
+   * @param key
+   *          key
+   * @return parameter
+   */
   private NamespaceContextParams getLastElement(String key) {
     return getLastElement(key, -1);
   }
 
+  /**
+   * Returns parameter by key.
+   * 
+   * @param key
+   *          key
+   * @param shift
+   *          shift
+   * @return parameter
+   */
   private NamespaceContextParams getLastElement(String key, int shift) {
     List<NamespaceContextParams> lst = namespaces.get(key);
     return lst.size() + shift > -1 ? lst.get(lst.size() + shift) : null;
   }
 
+  /**
+   * Returns the node prefix.
+   * 
+   * @param node
+   *          DOM node
+   * @return Returns prefix
+   */
   private String getNodePrefix(Node node) {
     String prfx = node.getPrefix();
     if (prfx == null || prfx.isEmpty()) {
       prfx = "";
       String name = node.getNodeName();
-      int idx = name.indexOf(":");
+      int idx = name.indexOf(C);
       if (idx > -1)
         return name.substring(0, idx);
     }

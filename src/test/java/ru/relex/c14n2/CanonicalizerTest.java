@@ -417,13 +417,14 @@ public class CanonicalizerTest {
         .println("l = " + (System.currentTimeMillis() - l) / 1000.0 + "s");
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    FileInputStream fis = new FileInputStream(path
-        + "out_"
-        + inFileName
-        + "_"
-        + paramName
-        + (excludeList != null || includeList != null ? ("_" + iExInCludeList.getExcludeListName())
-            : "") + ".xml");
+    FileInputStream fis = new FileInputStream(
+        path
+            + "out_"
+            + inFileName
+            + "_"
+            + paramName
+            + (excludeList != null || includeList != null ? ("_" + iExInCludeList
+                .getExcludeListName()) : "") + ".xml");
     byte[] bytes = new byte[1024];
     int cnt = 0;
     while ((cnt = fis.read(bytes)) > -1)
