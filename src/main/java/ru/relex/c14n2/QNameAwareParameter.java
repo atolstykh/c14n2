@@ -47,5 +47,4 @@ public class QNameAwareParameter {
   public void setNs(String ns) {
     this.ns = ns;
   }
-
 }

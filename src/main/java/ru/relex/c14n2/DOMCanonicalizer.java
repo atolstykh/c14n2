@@ -10,7 +10,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * C2N14 canonicalization.
+ * C14N2 canonicalization.
  */
 public class DOMCanonicalizer {
 

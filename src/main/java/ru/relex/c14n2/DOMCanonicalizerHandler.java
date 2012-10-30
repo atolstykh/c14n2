@@ -18,7 +18,7 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
 
 /**
- * C2N14 canonicalizer.
+ * C14N2 canonicalizer.
  */
 class DOMCanonicalizerHandler {
   private static final Logger LOGGER = LoggerFactory
