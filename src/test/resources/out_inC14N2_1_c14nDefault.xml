@@ -1,6 +1,6 @@
 <doc>
    <clean>   </clean>
-   <dirty xml:space="preserve">   A   B   </dirty>
+   <dirty xml:space="preserve">   A   B   &lt;&gt;&amp;"</dirty>
    <mixed>
       A
       <clean>   </clean>

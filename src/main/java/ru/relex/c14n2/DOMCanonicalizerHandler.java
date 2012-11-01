@@ -224,6 +224,8 @@ class DOMCanonicalizerHandler {
 
     String text = node.getNodeValue() != null ? node.getNodeValue() : "";
 
+    text = processText(text, false);
+
     StringBuffer value = new StringBuffer();
     for (int i = 0; i < text.length(); i++) {
       char codepoint = text.charAt(i);
@@ -235,8 +237,6 @@ class DOMCanonicalizerHandler {
       }
     }
     text = value.toString();
-
-    processText(text, false);
 
     if (parameters.isTrimTextNodes()) {
       boolean b = true;
@@ -595,33 +595,12 @@ class DOMCanonicalizerHandler {
       });
 
       for (NamespaceContextParams entry : outNSList) {
-        List<NamespaceContextParams> lst = namespaces.get(entry.getPrefix());
-        boolean b = false;
         NamespaceContextParams ncp = getLastElement(entry.getPrefix());
-        for (int j = lst.size() - 2; j >= 0; j--) {
-          NamespaceContextParams prntNcp = lst.get(j);
-          if (prntNcp.getUri().equals(entry.getUri())
-              && (prntNcp.isHasOutput() || !prntNcp.getPrefix().equals(
-                  ncp.getNewPrefix()))) {
-            b = true;
-            ncp.setNewPrefix(prntNcp.getNewPrefix());
-            break;
-          }
-        }
-        if (!b) {
-          if (!sequentialUriMap.containsKey(entry.getUri()))
-            sequentialUriMap.put(entry.getUri(),
-                String.format("n%s", sequentialUriMap.size()));
-          entry.setNewPrefix(sequentialUriMap.get(entry.getUri()));
-          ncp.setNewPrefix(entry.getNewPrefix());
-          for (int j = 2; j <= lst.size(); j++)
-            if (getLastElement(entry.getPrefix(), -j).getUri().equals(
-                entry.getUri())) {
-              getLastElement(entry.getPrefix(), -j).setNewPrefix(
-                  entry.getNewPrefix());
-              break;
-            }
-        }
+        if (!sequentialUriMap.containsKey(entry.getUri()))
+          sequentialUriMap.put(entry.getUri(),
+              String.format("n%s", sequentialUriMap.size()));
+        entry.setNewPrefix(sequentialUriMap.get(entry.getUri()));
+        ncp.setNewPrefix(entry.getNewPrefix());
       }
     } else {
       Collections.sort(outNSList, new Comparator<NamespaceContextParams>() {
@@ -772,9 +751,9 @@ class DOMCanonicalizerHandler {
   private String processText(String text, boolean bAttr) {
     text = text.replace("&", "&amp;");
     text = text.replace("<", "&lt;");
-    if (!bAttr)
+    if (!bAttr) {
       text = text.replace(">", "&gt;");
-    else {
+    } else {
       text = text.replace("\"", "&quot;");
       text = text.replace("#xA", "&#xA;");
       text = text.replace("#x9", "&#x9;");

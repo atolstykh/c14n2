@@ -432,17 +432,17 @@ public class CanonicalizerTest {
     fis.close();
     baos.flush();
     baos.close();
-    // boolean b = true;
+    boolean b = true;
     for (int i = 0; i < result.length(); i++)
-      if (result.getBytes()[i] != baos.toByteArray()[i]) {
-        System.out.println("Error pos: " + i + " res:" + result.getBytes()[i]
-            + " base:" + baos.toByteArray()[i]);
-        // b = false;
+      if (result.getBytes("UTF-8")[i] != baos.toByteArray()[i]) {
+        System.out.println("Error pos: " + i + " res:"
+            + result.getBytes("UTF-8")[i] + " base:" + baos.toByteArray()[i]);
+        b = false;
         break;
       }
     System.out.println("'" + baos.toString("UTF-8") + "'\n" + "'" + result
         + "'");
-    return result.equals(baos.toString("UTF-8"));
+    return b;
   }
 
   private static Parameters getParams(String paramName) {
