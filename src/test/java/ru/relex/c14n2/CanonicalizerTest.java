@@ -19,6 +19,40 @@ import org.w3c.dom.NodeList;
 
 public class CanonicalizerTest {
 
+  @Test(threadPoolSize = 10, invocationCount = 1000, invocationTimeOut = 0)
+  public void testMultiThread() {
+    testN1Default();
+    testN1Comment();
+    testN2Default();
+    testN2Trim();
+    testN3Default();
+    testN3Prefix();
+    testN3Trim();
+    testN4Default();
+    testN4Trim();
+    testN5Default();
+    testN5Trim();
+    testN6Default();
+    testNsPushdownDefault();
+    testNsPushdownPrefix();
+    testNsDefaultDefault();
+    testNsDefaultPrefix();
+    testNsSortDefault();
+    testNsSortPrefix();
+    testNsRedeclDefault();
+    testNsRedeclPrefix();
+    testNsSuperfluousDefault();
+    testNsSuperfluousPrefix();
+    testNsXmlDefault();
+    testNsXmlPrefix();
+    testNsXmlQname();
+    testNsXmlPrefixQname();
+    testNsContentDefault();
+    testNsContentQnameElem();
+    testNsContentQnameXpathElem();
+    testNsContentPrefixQnameXPathElem();
+  }
+
   @Test
   public void testN1Default() {
     Assert.assertTrue(processTest("1", "inC14N1", "c14nDefault"));
@@ -435,18 +469,18 @@ public class CanonicalizerTest {
     fis.close();
     baos.flush();
     baos.close();
-    boolean b = true;
-    for (int i = 0; i < result.length(); i++) {
+    boolean b = l <= 200;
+    for (int i = 0; b && i < result.length(); i++) {
       if (result.getBytes("UTF-8")[i] != baos.toByteArray()[i]) {
         System.out.println("Error pos: " + i + " res:"
             + result.getBytes("UTF-8")[i] + " base:" + baos.toByteArray()[i]);
         b = false;
-        break;
       }
     }
     if (!b) {
-      System.out.println("'" + baos.toString("UTF-8") + "'\n" + "'" + result
-          + "'");
+      System.out.println("---Result---\n" + baos.toString("UTF-8")
+          + "\n---Base---\n" + result + "---time---\n" + l / 1000.0
+          + "\n------");
     } else {
       System.out.println("Test " + testNumber + " (" + l / 1000.0
           + " sec) – ok");
