@@ -21,177 +21,178 @@ public class CanonicalizerTest {
 
   @Test
   public void testN1Default() {
-    Assert.assertTrue(processTest("inC14N1", "c14nDefault"));
+    Assert.assertTrue(processTest("1", "inC14N1", "c14nDefault"));
   }
 
   @Test
   public void testN1Comment() {
-    Assert.assertTrue(processTest("inC14N1", "c14nComment"));
+    Assert.assertTrue(processTest("2", "inC14N1", "c14nComment"));
   }
 
   @Test
   public void testN2Default() {
-    Assert.assertTrue(processTest("inC14N2", "c14nDefault"));
+    Assert.assertTrue(processTest("3", "inC14N2", "c14nDefault"));
   }
 
   @Test
   public void testN2Trim() {
-    Assert.assertTrue(processTest("inC14N2", "c14nTrim"));
+    Assert.assertTrue(processTest("4", "inC14N2", "c14nTrim"));
   }
 
   @Test
   public void testN21Default() {
-    Assert.assertTrue(processTest("inC14N2_1", "c14nDefault"));
+    Assert.assertTrue(processTest("1r", "inC14N2_1", "c14nDefault"));
   }
 
   @Test
   public void testN21Trim() {
-    Assert.assertTrue(processTest("inC14N2_1", "c14nTrim"));
+    Assert.assertTrue(processTest("2r", "inC14N2_1", "c14nTrim"));
   }
 
   @Test
   public void testN3Default() {
-    Assert.assertTrue(processTest("inC14N3", "c14nDefault"));
+    Assert.assertTrue(processTest("5", "inC14N3", "c14nDefault"));
   }
 
   @Test
   public void testN3Prefix() {
-    Assert.assertTrue(processTest("inC14N3", "c14nPrefix"));
+    Assert.assertTrue(processTest("6", "inC14N3", "c14nPrefix"));
   }
 
   @Test
   public void testN3Trim() {
-    Assert.assertTrue(processTest("inC14N3", "c14nTrim"));
+    Assert.assertTrue(processTest("7", "inC14N3", "c14nTrim"));
   }
 
   @Test
   public void testN4Default() {
-    Assert.assertTrue(processTest("inC14N4", "c14nDefault"));
+    Assert.assertTrue(processTest("8", "inC14N4", "c14nDefault"));
   }
 
   @Test
   public void testN4Trim() {
-    Assert.assertTrue(processTest("inC14N4", "c14nTrim"));
+    Assert.assertTrue(processTest("9", "inC14N4", "c14nTrim"));
   }
 
   @Test
   public void testN5Default() {
-    Assert.assertTrue(processTest("inC14N5", "c14nDefault"));
+    Assert.assertTrue(processTest("10", "inC14N5", "c14nDefault"));
   }
 
   @Test
   public void testN5Trim() {
-    Assert.assertTrue(processTest("inC14N5", "c14nTrim"));
+    Assert.assertTrue(processTest("11", "inC14N5", "c14nTrim"));
   }
 
   @Test
   public void testN6Default() {
-    Assert.assertTrue(processTest("inC14N6", "c14nDefault"));
+    Assert.assertTrue(processTest("12", "inC14N6", "c14nDefault"));
   }
 
   @Test
   public void testNsPushdownDefault() {
-    Assert.assertTrue(processTest("inNsPushdown", "c14nDefault"));
+    Assert.assertTrue(processTest("13", "inNsPushdown", "c14nDefault"));
   }
 
   @Test
   public void testNsPushdownPrefix() {
-    Assert.assertTrue(processTest("inNsPushdown", "c14nPrefix"));
+    Assert.assertTrue(processTest("14", "inNsPushdown", "c14nPrefix"));
   }
 
   @Test
   public void testNsDefaultDefault() {
-    Assert.assertTrue(processTest("inNsDefault", "c14nDefault"));
+    Assert.assertTrue(processTest("15", "inNsDefault", "c14nDefault"));
   }
 
   @Test
   public void testNsDefaultPrefix() {
-    Assert.assertTrue(processTest("inNsDefault", "c14nPrefix"));
+    Assert.assertTrue(processTest("16", "inNsDefault", "c14nPrefix"));
   }
 
   @Test
   public void testNsSortDefault() {
-    Assert.assertTrue(processTest("inNsSort", "c14nDefault"));
+    Assert.assertTrue(processTest("17", "inNsSort", "c14nDefault"));
   }
 
   @Test
   public void testNsSortPrefix() {
-    Assert.assertTrue(processTest("inNsSort", "c14nPrefix"));
+    Assert.assertTrue(processTest("18", "inNsSort", "c14nPrefix"));
   }
 
   @Test
   public void testNsRedeclDefault() {
-    Assert.assertTrue(processTest("inNsRedecl", "c14nDefault"));
+    Assert.assertTrue(processTest("19", "inNsRedecl", "c14nDefault"));
   }
 
   @Test
   public void testNsRedeclPrefix() {
-    Assert.assertTrue(processTest("inNsRedecl", "c14nPrefix"));
+    Assert.assertTrue(processTest("20", "inNsRedecl", "c14nPrefix"));
   }
 
   @Test
   public void testNsSuperfluousDefault() {
-    Assert.assertTrue(processTest("inNsSuperfluous", "c14nDefault"));
+    Assert.assertTrue(processTest("21", "inNsSuperfluous", "c14nDefault"));
   }
 
   @Test
   public void testNsSuperfluousPrefix() {
-    Assert.assertTrue(processTest("inNsSuperfluous", "c14nPrefix"));
+    Assert.assertTrue(processTest("22", "inNsSuperfluous", "c14nPrefix"));
   }
 
   @Test
   public void testNsXmlDefault() {
-    Assert.assertTrue(processTest("inNsXml", "c14nDefault"));
+    Assert.assertTrue(processTest("23", "inNsXml", "c14nDefault"));
   }
 
   @Test
   public void testNsXmlPrefix() {
-    Assert.assertTrue(processTest("inNsXml", "c14nPrefix"));
+    Assert.assertTrue(processTest("24", "inNsXml", "c14nPrefix"));
   }
 
   @Test
   public void testNsXmlQname() {
-    Assert.assertTrue(processTest("inNsXml", "c14nQname"));
+    Assert.assertTrue(processTest("25", "inNsXml", "c14nQname"));
   }
 
   @Test
   public void testNsXmlPrefixQname() {
-    Assert.assertTrue(processTest("inNsXml", "c14nPrefixQname"));
+    Assert.assertTrue(processTest("26", "inNsXml", "c14nPrefixQname"));
   }
 
   @Test
   public void testNsContentDefault() {
-    Assert.assertTrue(processTest("inNsContent", "c14nDefault"));
+    Assert.assertTrue(processTest("27", "inNsContent", "c14nDefault"));
   }
 
   @Test
   public void testNsContentQnameElem() {
-    Assert.assertTrue(processTest("inNsContent", "c14nQnameElem"));
+    Assert.assertTrue(processTest("28", "inNsContent", "c14nQnameElem"));
   }
 
   @Test
   public void testNsContentQnameXpathElem() {
-    Assert.assertTrue(processTest("inNsContent", "c14nQnameXpathElem"));
+    Assert.assertTrue(processTest("29", "inNsContent", "c14nQnameXpathElem"));
   }
 
   @Test
   public void testNsContentPrefixQnameXPathElem() {
-    Assert.assertTrue(processTest("inNsContent", "c14nPrefixQnameXPathElem"));
+    Assert.assertTrue(processTest("30", "inNsContent",
+        "c14nPrefixQnameXpathElem"));
   }
 
   @Test
   public void testRC242Default() {
-    Assert.assertTrue(processTest("inRC2_4_2", "c14nDefault"));
+    Assert.assertTrue(processTest("3r", "inRC2_4_2", "c14nDefault"));
   }
 
   @Test
   public void testN22Trim() {
-    Assert.assertTrue(processTest("inC14N2_2", "c14nTrim"));
+    Assert.assertTrue(processTest("4r", "inC14N2_2", "c14nTrim"));
   }
 
   @Test
   public void testN22TrimExcl1() {
-    Assert.assertTrue(processTest("inC14N2_2", "c14nTrim",
+    Assert.assertTrue(processTest("5r", "inC14N2_2", "c14nTrim",
         new ICanonicalizerExcludeList() {
 
           @Override
@@ -211,7 +212,7 @@ public class CanonicalizerTest {
 
   @Test
   public void testN3DefaultExcl1() {
-    Assert.assertTrue(processTest("inC14N3", "c14nDefault",
+    Assert.assertTrue(processTest("6r", "inC14N3", "c14nDefault",
         new ICanonicalizerExcludeList() {
 
           @Override
@@ -236,7 +237,7 @@ public class CanonicalizerTest {
 
   @Test
   public void testN3DefaultExcl2() {
-    Assert.assertTrue(processTest("inC14N3", "c14nDefault",
+    Assert.assertTrue(processTest("7r", "inC14N3", "c14nDefault",
         new ICanonicalizerExcludeList() {
 
           @Override
@@ -261,12 +262,13 @@ public class CanonicalizerTest {
 
   @Test
   public void testNsContent1PrefixQnameXPathElem() {
-    Assert.assertTrue(processTest("inNsContent_1", "c14nPrefixQnameXPathElem"));
+    Assert.assertTrue(processTest("8r", "inNsContent_1",
+        "c14nPrefixQnameXpathElem"));
   }
 
   @Test
   public void testN22TrimExcl2() {
-    Assert.assertTrue(processTest("inC14N2_2", "c14nTrim",
+    Assert.assertTrue(processTest("9r", "inC14N2_2", "c14nTrim",
         new ICanonicalizerExcludeList() {
 
           @Override
@@ -290,17 +292,17 @@ public class CanonicalizerTest {
 
   @Test
   public void testWsseDefault() {
-    Assert.assertTrue(processTest("inWsse", "c14nDefault"));
+    Assert.assertTrue(processTest("10r", "inWsse", "c14nDefault"));
   }
 
   @Test
   public void testWssePrefix() {
-    Assert.assertTrue(processTest("inWsse", "c14nPrefix"));
+    Assert.assertTrue(processTest("11r", "inWsse", "c14nPrefix"));
   }
 
   @Test
   public void testN3PrefixIncl1() {
-    Assert.assertTrue(processTest("inC14N3", "c14nPrefix",
+    Assert.assertTrue(processTest("12r", "inC14N3", "c14nPrefix",
         new ICanonicalizerExcludeList() {
 
           @Override
@@ -353,8 +355,8 @@ public class CanonicalizerTest {
 
       String path = CanonicalizerTest.class.getProtectionDomain()
           .getCodeSource().getLocation().getPath();
-      Assert
-          .assertTrue(processTest(doc, path, "inFlyXml", "c14nDefault", null));
+      Assert.assertTrue(processTest("13r", doc, path, "inFlyXml",
+          "c14nDefault", null));
     } catch (Exception e) {
       e.printStackTrace();
       Assert.assertFalse(false);
@@ -363,15 +365,16 @@ public class CanonicalizerTest {
 
   @Test
   public void testNsDefault1Prefix() {
-    Assert.assertTrue(processTest("inNsDefault_1", "c14nPrefix"));
+    Assert.assertTrue(processTest("14r", "inNsDefault_1", "c14nPrefix"));
   }
 
-  private static boolean processTest(String inFileName, String paramName) {
-    return processTest(inFileName, paramName, null);
+  private static boolean processTest(String testNumber, String inFileName,
+      String paramName) {
+    return processTest(testNumber, inFileName, paramName, null);
   }
 
-  private static boolean processTest(String inFileName, String paramName,
-      ICanonicalizerExcludeList iExcludeList) {
+  private static boolean processTest(String testNumber, String inFileName,
+      String paramName, ICanonicalizerExcludeList iExcludeList) {
     try {
       DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
@@ -381,15 +384,16 @@ public class CanonicalizerTest {
 
       Document doc = dBuilder.parse(new FileInputStream(path + inFileName
           + ".xml"));
-      return processTest(doc, path, inFileName, paramName, iExcludeList);
+      return processTest(testNumber, doc, path, inFileName, paramName,
+          iExcludeList);
     } catch (Throwable e) {
       e.printStackTrace();
     }
     return false;
   }
 
-  private static boolean processTest(Document doc, String path,
-      String inFileName, String paramName,
+  private static boolean processTest(String testNumber, Document doc,
+      String path, String inFileName, String paramName,
       ICanonicalizerExcludeList iExInCludeList) throws Exception {
     long l = System.currentTimeMillis();
     String result = "";
@@ -413,8 +417,7 @@ public class CanonicalizerTest {
         result = DOMCanonicalizer.canonicalize(doc, getParams(paramName));
       }
     }
-    System.out
-        .println("l = " + (System.currentTimeMillis() - l) / 1000.0 + "s");
+    l = System.currentTimeMillis() - l;
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FileInputStream fis = new FileInputStream(
@@ -433,15 +436,21 @@ public class CanonicalizerTest {
     baos.flush();
     baos.close();
     boolean b = true;
-    for (int i = 0; i < result.length(); i++)
+    for (int i = 0; i < result.length(); i++) {
       if (result.getBytes("UTF-8")[i] != baos.toByteArray()[i]) {
         System.out.println("Error pos: " + i + " res:"
             + result.getBytes("UTF-8")[i] + " base:" + baos.toByteArray()[i]);
         b = false;
         break;
       }
-    System.out.println("'" + baos.toString("UTF-8") + "'\n" + "'" + result
-        + "'");
+    }
+    if (!b) {
+      System.out.println("'" + baos.toString("UTF-8") + "'\n" + "'" + result
+          + "'");
+    } else {
+      System.out.println("Test " + testNumber + " (" + l / 1000.0
+          + " sec) – ok");
+    }
     return b;
   }
 
@@ -472,7 +481,7 @@ public class CanonicalizerTest {
       params.getQnameAwareXPathElements().add(
           new QNameAwareParameter("IncludedXPath",
               "http://www.w3.org/2010/xmldsig2#"));
-    } else if ("c14nPrefixQnameXPathElem".equals(paramName)) {
+    } else if ("c14nPrefixQnameXpathElem".equals(paramName)) {
       params.setPrefixRewrite(Parameters.SEQUENTIAL);
       params.getQnameAwareElements().add(
           new QNameAwareParameter("bar", "http://a"));

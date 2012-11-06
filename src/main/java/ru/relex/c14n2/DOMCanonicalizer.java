@@ -92,7 +92,7 @@ public class DOMCanonicalizer {
    * @param params
    *          canonicalization parameters
    * 
-   * @return Returns the canonical form of an XML document.
+   * @return Returns the canonical form of an XML document
    * 
    * @throws Exception
    */
@@ -105,7 +105,7 @@ public class DOMCanonicalizer {
   /**
    * Canonicalizing of subtree.
    * 
-   * @return Returns the canonical form of a subtree.
+   * @return Returns the canonical form of a subtree
    * 
    * @throws Exception
    */

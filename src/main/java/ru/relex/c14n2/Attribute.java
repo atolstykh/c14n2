@@ -12,7 +12,7 @@ class Attribute {
   /**
    * Returns the prefix of the qualified name of this attribute.
    * 
-   * @return Returns the new prefix
+   * @return Returns the prefix
    */
   public String getPrefix() {
     return prefix;
