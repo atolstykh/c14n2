@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.xml.crypto.dsig.TransformException;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -15,7 +17,7 @@ import org.w3c.dom.NodeList;
 public class DOMCanonicalizer {
 
   private DOMCanonicalizerHandler canonicalizer = null;
-  private Document doc = null;
+  private Node node = null;
   private List<Node> nodes = new ArrayList<Node>();
   private List<Node> includeList = null;
 
@@ -33,23 +35,23 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  private DOMCanonicalizer(Document doc, List<Node> includeList,
-      List<Node> excludeList, Parameters params) throws Exception {
-    if (doc == null) {
+  private DOMCanonicalizer(Node node, List<Node> includeList,
+      List<Node> excludeList, Parameters params) throws TransformException {
+    if (node == null) {
       throw new NullPointerException();
     }
 
     this.includeList = includeList != null && includeList.isEmpty() ? null
         : includeList;
-    this.doc = doc;
+    this.node = node;
     StringBuffer sb = new StringBuffer();
     canonicalizer = new DOMCanonicalizerHandler(
         params == null ? new Parameters() : params, excludeList != null
             && excludeList.isEmpty() ? null : excludeList, sb);
   }
-
+  
   /**
-   * Constructor.
+   * Canonicalization method.
    * 
    * @param doc
    *          DOM document
@@ -58,13 +60,13 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  public static String canonicalize(Document doc, Parameters params)
-      throws Exception {
-    return canonicalize(doc, null, null, params);
+  public static String canonicalize(Node node, Parameters params)
+      throws TransformException {
+    return canonicalize(node, null, null, params);
   }
 
   /**
-   * Constructor.
+   * Canonicalization method.
    * 
    * @param doc
    *          DOM document
@@ -75,9 +77,9 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  public static String canonicalize(Document doc, List<Node> includeList,
+  public static String canonicalize(Node node, List<Node> includeList,
       Parameters params) throws Exception {
-    return canonicalize(doc, includeList, null, params);
+    return canonicalize(node, includeList, null, params);
   }
 
   /**
@@ -96,12 +98,12 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  public static String canonicalize(Document doc, List<Node> includeList,
-      List<Node> excludeList, Parameters params) throws Exception {
-    return new DOMCanonicalizer(doc, includeList, excludeList, params)
+  public static String canonicalize(Node node, List<Node> includeList,
+      List<Node> excludeList, Parameters params) throws TransformException {
+    return new DOMCanonicalizer(node, includeList, excludeList, params)
         .canonicalizeSubTree();
   }
-
+  
   /**
    * Canonicalizing of subtree.
    * 
@@ -109,9 +111,9 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  private String canonicalizeSubTree() throws Exception {
+  private String canonicalizeSubTree() throws TransformException {
     if (includeList == null) {
-      process(doc);
+      process(node);
     } else {
       processIncludeList();
       while (nodes.size() > 0) {

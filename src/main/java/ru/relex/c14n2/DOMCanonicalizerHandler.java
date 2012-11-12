@@ -619,37 +619,43 @@ class DOMCanonicalizerHandler {
    *          DOM node
    */
   private void addNamespaces(Node node) {
-    for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
-      Node attr = node.getAttributes().item(ni);
-      if (isInExcludeList(attr))
-        continue;
-      String prefix = getLocalName(attr);
-
-      String prfxNs = getNodePrefix(attr);
-
-      if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
-        if (NS.equals(prefix)) {
-          prefix = "";
-        }
-
-        String uri = attr.getNodeValue();
-
-        List<NamespaceContextParams> stack = namespaces.get(prefix);
-        if (stack != null && uri.equals(getLastElement(prefix).getUri()))
+    // тут мы добавим перебор парентов для данной ноды, что б запомнить все NS из документа
+    do {
+      if (node.getAttributes() != null)
+      for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
+        Node attr = node.getAttributes().item(ni);
+        if (isInExcludeList(attr))
           continue;
-
-        if (!namespaces.containsKey((prefix))) {
-          namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
+        String prefix = getLocalName(attr);
+  
+        String prfxNs = getNodePrefix(attr);
+  
+        if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
+          if (NS.equals(prefix)) {
+            prefix = "";
+          }
+  
+          String uri = attr.getNodeValue();
+  
+          List<NamespaceContextParams> stack = namespaces.get(prefix);
+          if (stack != null && uri.equals(getLastElement(prefix).getUri()))
+            continue;
+  
+          if (!namespaces.containsKey((prefix))) {
+            namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
+          }
+          NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
+              prefix, getNodeDepth(node));
+          if (namespaces.get(prefix).size() == 0
+              || getNodeDepth(node) != getLastElement(prefix).getDepth())
+            namespaces.get(prefix).add(nsp);
+          else
+            namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
         }
-        NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
-            prefix, getNodeDepth(node));
-        if (namespaces.get(prefix).size() == 0
-            || getNodeDepth(node) != getLastElement(prefix).getDepth())
-          namespaces.get(prefix).add(nsp);
-        else
-          namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
       }
-    }
+      node = node.getParentNode();
+    } while (node != null);
+
   }
 
   /**
