@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,6 +46,8 @@ class DOMCanonicalizerHandler {
 
   private Map<String, NSContext> xpathesNsMap = new HashMap<String, NSContext>();
 
+  private List<Node> checkedNamespaceNodes = new LinkedList<Node>();
+  
   /**
    * Constructor.
    * 
@@ -653,7 +656,31 @@ class DOMCanonicalizerHandler {
             namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
         }
       }
-      node = node.getParentNode();
+      // пометим текущую ноду как проверенную
+      checkedNamespaceNodes.add(node);
+      
+      boolean finded = false;
+      do {
+        node = node.getParentNode();
+        if (node == null){
+          break;
+        }
+        else {
+          for (Node n : checkedNamespaceNodes){
+            if (n.isSameNode(node)){
+              finded = false;
+              break;
+            }
+            else {
+              finded = true;
+            }
+          }
+        }
+        
+      }
+      while (node != null && !finded);
+      
+      
     } while (node != null);
 
   }
@@ -807,6 +834,7 @@ class DOMCanonicalizerHandler {
    */
   private NamespaceContextParams getLastElement(String key, int shift) {
     List<NamespaceContextParams> lst = namespaces.get(key);
+    if (lst == null) return null;
     return lst.size() + shift > -1 ? lst.get(lst.size() + shift) : null;
   }
 
