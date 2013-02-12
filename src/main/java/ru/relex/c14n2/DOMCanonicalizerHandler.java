@@ -621,7 +621,7 @@ class DOMCanonicalizerHandler {
    * @param node
    *          DOM node
    */
-  private void addNamespaces(Node node) {
+  private void addNamespaces_old(Node node) {
     // тут мы добавим перебор парентов для данной ноды, что б запомнить все NS из документа
     do {
       if (node.getAttributes() != null)
@@ -682,6 +682,84 @@ class DOMCanonicalizerHandler {
       
       
     } while (node != null);
+
+  }
+  
+  /**
+   * Add namespaces to stack.
+   * 
+   * @param node
+   *          DOM node
+   */
+  private void addNamespaces(Node node) {
+    // тут мы добавим перебор парентов для данной ноды, что б запомнить все NS из документа
+    // вытащим всех парентов данной ноды - и добавим их в лист нод на добавление
+    List<Node> nodesToCheckNamespace = new LinkedList<Node>();
+    nodesToCheckNamespace.add(node);
+    Node origNode = node;
+    boolean finded = false;
+    do {
+      node = node.getParentNode();
+      if (node == null){
+        break;
+      }
+      else {
+        finded = false;
+        for (Node n : checkedNamespaceNodes){
+          if (n.isSameNode(node)){
+            finded = finded || true;
+          }
+          else {
+            finded = finded || false;
+          }
+        }
+        if (!finded) {
+          nodesToCheckNamespace.add(node);
+          checkedNamespaceNodes.add(node);
+        }
+      }
+      
+    }
+    while (node != null); // && !finded);
+    
+    Collections.reverse(nodesToCheckNamespace);
+    
+    // перебор всех
+    for (Node cur_node: nodesToCheckNamespace){
+      if (cur_node.getAttributes() != null)
+      for (int ni = 0; ni < cur_node.getAttributes().getLength(); ni++) {
+        Node attr = cur_node.getAttributes().item(ni);
+        if (isInExcludeList(attr))
+          continue;
+        String prefix = getLocalName(attr);
+  
+        String prfxNs = getNodePrefix(attr);
+  
+        if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
+          if (NS.equals(prefix)) {
+            prefix = "";
+          }
+  
+          String uri = attr.getNodeValue();
+  
+          List<NamespaceContextParams> stack = namespaces.get(prefix);
+          if (stack != null && uri.equals(getLastElement(prefix).getUri()))
+            continue;
+  
+          if (!namespaces.containsKey((prefix))) {
+            namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
+          }
+          NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
+              prefix, getNodeDepth(cur_node));
+          if (namespaces.get(prefix).size() == 0
+              || getNodeDepth(cur_node) != getLastElement(prefix).getDepth())
+            namespaces.get(prefix).add(nsp);
+          else
+            namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
+        }
+      }
+      
+    }
 
   }
 
