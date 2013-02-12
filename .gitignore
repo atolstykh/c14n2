@@ -12,3 +12,21 @@ velocity.log
 .project
 .metadata
 
+# IDE project files
+*.iml
+*.ipr
+*.iws
+*.kdevelop
+*.kdevelop.pcs
+*.kdevelop.filelist
+*.kdevses
+*.kdev4
+*.cbp
+*.pro.user
+.idea
+CMakeLists.txt.user
+Doxyfile
+classes
+target
+temp
+jbiServiceUnits
