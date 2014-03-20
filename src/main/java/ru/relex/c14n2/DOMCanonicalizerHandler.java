@@ -89,8 +89,9 @@ class DOMCanonicalizerHandler {
   protected void processElement(Node node) {
     LOGGER.debug("processElement: {}", node);
 
-    if (isInExcludeList(node))
+    if (isInExcludeList(node)) {
       return;
+    }
 
     if (getNodeDepth(node) == 1) {
       bStart = false;
@@ -229,7 +230,7 @@ class DOMCanonicalizerHandler {
 
     text = processText(text, false);
 
-    StringBuffer value = new StringBuffer();
+    StringBuilder value = new StringBuilder();
     for (int i = 0; i < text.length(); i++) {
       char codepoint = text.charAt(i);
       if (codepoint == 13) {
@@ -260,20 +261,21 @@ class DOMCanonicalizerHandler {
     }
 
     if (parameters.getQnameAwareElements().size() > 0 && bSequential) {
-      if (text.startsWith(XSD + C)) {
-        if (namespaces.containsKey(XSD)) {
-          Node prntNode = node.getParentNode();
-          String nodeName = getLocalName(prntNode);
-          String nodePrefix = getNodePrefix(prntNode);
-          NamespaceContextParams ncp = getLastElement(XSD);
-          NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
-          for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
-            if (nodeName.equals(en.getName())
-                && en.getNs().equals(attrPrfxNcp.getUri())) {
-              text = ncp.getNewPrefix() + text.substring(XSD.length());
+
+      Node prntNode = node.getParentNode();
+      String nodeName = getLocalName(prntNode);
+      String nodePrefix = getNodePrefix(prntNode);
+      NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
+      for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
+        if (nodeName.equals(en.getName())
+              && en.getNs().equals(attrPrfxNcp.getUri())) {
+            if (text.contains(C)) {
+              String prefix = text.split(C)[0];
+              NamespaceContextParams ncp = getLastElement(prefix);
+              text = ncp.getNewPrefix() + text.substring(prefix.length());
             }
-          }
-        }
+            break;
+         }
       }
     }
     if (parameters.getQnameAwareXPathElements().size() > 0 && bSequential
@@ -287,7 +289,7 @@ class DOMCanonicalizerHandler {
           String nodeText = node.getTextContent();
           NSContext nsContext = xpathesNsMap.get(nodeText);
           List<String> xpathNs = nsContext.getXpathNs();
-          StringBuffer sb = new StringBuffer(nodeText.length());
+          StringBuilder sb = new StringBuilder(nodeText.length());
           int baseTextIdx = 0;
           if (xpathNs.size() > 0) {
             Iterator<String> it = xpathNs.iterator();
