@@ -260,6 +260,7 @@ class DOMCanonicalizerHandler {
       }
     }
 
+
     if (text.contains(C) && parameters.getQnameAwareElements().size() > 0 && bSequential) {
 
       Node prntNode = node.getParentNode();
