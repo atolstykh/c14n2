@@ -260,7 +260,7 @@ class DOMCanonicalizerHandler {
       }
     }
 
-    if (parameters.getQnameAwareElements().size() > 0 && bSequential) {
+    if (text.contains(C) && parameters.getQnameAwareElements().size() > 0 && bSequential) {
 
       Node prntNode = node.getParentNode();
       String nodeName = getLocalName(prntNode);
@@ -269,11 +269,9 @@ class DOMCanonicalizerHandler {
       for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
         if (nodeName.equals(en.getName())
               && en.getNs().equals(attrPrfxNcp.getUri())) {
-            if (text.contains(C)) {
-              String prefix = text.split(C)[0];
-              NamespaceContextParams ncp = getLastElement(prefix);
-              text = ncp.getNewPrefix() + text.substring(prefix.length());
-            }
+            String prefix = text.split(C)[0];
+            NamespaceContextParams ncp = getLastElement(prefix);
+            text = ncp.getNewPrefix() + text.substring(prefix.length());
             break;
          }
       }
