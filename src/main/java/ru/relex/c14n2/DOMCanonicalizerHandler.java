@@ -786,7 +786,8 @@ class DOMCanonicalizerHandler {
       NamespaceContextParams ncp = getLastElement(prefix);
       String prfx = ncp.getPrefix();
       String childText = node.getTextContent();
-      if (childText != null && childText.startsWith(prfx + C)
+      // Делаем trim(), так как text может начинаться с пробелов
+      if (childText != null && childText.trim().startsWith(prfx + C)
           && node.getChildNodes().getLength() == 1) {
         NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
         for (QNameAwareParameter en : parameters.getQnameAwareElements()) {

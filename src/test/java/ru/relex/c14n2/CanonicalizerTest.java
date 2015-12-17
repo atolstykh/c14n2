@@ -3,6 +3,7 @@ package ru.relex.c14n2;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -51,6 +52,7 @@ public class CanonicalizerTest {
     testNsContentQnameElem();
     testNsContentQnameXpathElem();
     testNsContentPrefixQnameXPathElem();
+    testinQNameTextWithWhiteSpaces();
   }
 
   @Test
@@ -213,6 +215,13 @@ public class CanonicalizerTest {
     Assert.assertTrue(processTest("30", "inNsContent",
         "c14nPrefixQnameXpathElem"));
   }
+
+  @Test
+  public void testinQNameTextWithWhiteSpaces() {
+    Assert.assertTrue(processTest("p1", "inQNameTextWithWhiteSpaces", "QNameAwareParameterWithWhiteSpace"));
+  }
+
+
 
   @Test
   public void testRC242Default() {
@@ -448,6 +457,11 @@ public class CanonicalizerTest {
         result = DOMCanonicalizer.canonicalize(doc, null, excludeList,
             getParams(paramName));
       } else {
+        if (paramName.equals("QNameAwareParameterWithWhiteSpace")) {
+          Parameters p = getParams(paramName);
+          System.out.println("!isTrimTextNodes \n\n\n\n" + p.isTrimTextNodes());
+          System.out.println("!isTrimTextNodes \n\n\n\n" + p.getQnameAwareElements().size());
+        }
         result = DOMCanonicalizer.canonicalize(doc, getParams(paramName));
       }
     }
@@ -522,6 +536,12 @@ public class CanonicalizerTest {
       params.getQnameAwareXPathElements().add(
           new QNameAwareParameter("IncludedXPath",
               "http://www.w3.org/2010/xmldsig2#"));
+    } else if ("QNameAwareParameterWithWhiteSpace".equals(paramName)) {
+      params.setIgnoreComments(true);
+      params.setTrimTextNodes(true);
+      params.getQnameAwareElements().add(
+         new QNameAwareParameter("ReferenceQName","http://xsd.gspvd/v001/addressing"));
+      params.setPrefixRewrite(Parameters.SEQUENTIAL);
     }
     return params;
   }
