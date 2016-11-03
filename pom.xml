@@ -18,11 +18,12 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
-    <maven-surefire-plugin.version>2.5</maven-surefire-plugin.version>    
+    <maven-surefire-plugin.version>2.5</maven-surefire-plugin.version>
     <org-uncommons-reporing.version>1.1.2</org-uncommons-reporing.version>
     <guice.version>3.0</guice.version>
     <testng.version>6.2.1</testng.version>
     <xalan.version>2.7.1</xalan.version>
+    <commons-lang3.version>3.5</commons-lang3.version>
    </properties>
   <build>
     <plugins>
@@ -89,6 +90,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${commons-lang3.version}</version>
+   </dependency>
+   <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
       <version>${guice.version}</version>
