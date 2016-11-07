@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
+import org.w3c.dom.NamedNodeMap;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * C14N2 canonicalizer.
@@ -33,6 +34,11 @@ class DOMCanonicalizerHandler {
   private static final String CF = "&#x%s;";
   private static final String C = ":";
 
+  private static final byte[] XD = {'&','#','x','D',';'};
+  private static final byte[] GT = {'&','g','t',';'};
+  private static final byte[] LT = {'&','l','t',';'};
+  private static final byte[] AMP = {'&','a','m','p',';'};
+    
   private List<Node> excludeList;
   private Parameters parameters;
   private StringBuffer outputBuffer;
@@ -46,8 +52,6 @@ class DOMCanonicalizerHandler {
 
   private Map<String, NSContext> xpathesNsMap = new HashMap<String, NSContext>();
 
-  private List<Node> checkedNamespaceNodes = new LinkedList<Node>();
-  
   /**
    * Constructor.
    * 
@@ -89,9 +93,8 @@ class DOMCanonicalizerHandler {
   protected void processElement(Node node) {
     LOGGER.debug("processElement: {}", node);
 
-    if (isInExcludeList(node)) {
+    if (isInExcludeList(node))
       return;
-    }
 
     if (getNodeDepth(node) == 1) {
       bStart = false;
@@ -182,9 +185,9 @@ class DOMCanonicalizerHandler {
 
     output.append(">");
 
-    outputBuffer.append(output);
+    StringUtils.join(outputBuffer,output);
   }
-
+  
   /**
    * Completion of processing element node.
    * 
@@ -211,7 +214,7 @@ class DOMCanonicalizerHandler {
       bEnd = true;
     }
 
-    outputBuffer.append(output);
+    StringUtils.join(outputBuffer,output);
   }
 
   /**
@@ -220,6 +223,7 @@ class DOMCanonicalizerHandler {
    * @param node
    *          text node
    */
+  
   protected void processText(Node node) {
     LOGGER.debug("processText: {}", node);
     if (getNodeDepth(node) < 2) {
@@ -228,15 +232,22 @@ class DOMCanonicalizerHandler {
 
     String text = node.getNodeValue() != null ? node.getNodeValue() : "";
 
-    text = processText(text, false);
-
-    StringBuilder value = new StringBuilder();
+    StringBuffer value = new StringBuffer(text.length());
     for (int i = 0; i < text.length(); i++) {
       char codepoint = text.charAt(i);
-      if (codepoint == 13) {
-        value.append(String.format(CF, Integer.toHexString(codepoint)
-            .toUpperCase()));
-      } else {
+      if (codepoint == '&') {
+    	  value.append(AMP);
+      }
+      else if (codepoint == '<') {
+    	  value.append(LT);
+      }
+      else if (codepoint == '>') {
+    	  value.append(GT);
+      }
+      else if (codepoint == 0xd) {
+    	  value.append(XD);
+      }
+      else {
         value.append(codepoint);
       }
     }
@@ -244,8 +255,9 @@ class DOMCanonicalizerHandler {
 
     if (parameters.isTrimTextNodes()) {
       boolean b = true;
-      for (int ai = 0; ai < node.getParentNode().getAttributes().getLength(); ai++) {
-        Node attr = node.getParentNode().getAttributes().item(ai);
+      NamedNodeMap attrs = node.getParentNode().getAttributes();
+      for (int ai = 0; ai < attrs.getLength(); ai++) {
+        Node attr = attrs.item(ai);
         if (isInExcludeList(attr))
           continue;
         if (XML.equals(getNodePrefix(attr))
@@ -256,25 +268,25 @@ class DOMCanonicalizerHandler {
         }
       }
       if (b) {
-        text = text.trim();
+        text = StringUtils.trim(text);
       }
     }
 
-
-    if (text.contains(C) && parameters.getQnameAwareElements().size() > 0 && bSequential) {
-
-      Node prntNode = node.getParentNode();
-      String nodeName = getLocalName(prntNode);
-      String nodePrefix = getNodePrefix(prntNode);
-      NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
-      for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
-        if (nodeName.equals(en.getName())
-              && en.getNs().equals(attrPrfxNcp.getUri())) {
-            String prefix = text.split(C)[0];
-            NamespaceContextParams ncp = getLastElement(prefix);
-            text = ncp.getNewPrefix() + text.substring(prefix.length());
-            break;
-         }
+    if (parameters.getQnameAwareElements().size() > 0 && bSequential) {
+      if (text.startsWith(XSD + C)) {
+        if (namespaces.containsKey(XSD)) {
+          Node prntNode = node.getParentNode();
+          String nodeName = getLocalName(prntNode);
+          String nodePrefix = getNodePrefix(prntNode);
+          NamespaceContextParams ncp = getLastElement(XSD);
+          NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
+          for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
+            if (nodeName.equals(en.getName())
+                && en.getNs().equals(attrPrfxNcp.getUri())) {
+              text = StringUtils.join(ncp.getNewPrefix(), StringUtils.substring(text, XSD.length()));
+            }
+          }
+        }
       }
     }
     if (parameters.getQnameAwareXPathElements().size() > 0 && bSequential
@@ -282,13 +294,13 @@ class DOMCanonicalizerHandler {
       Node prntNode = node.getParentNode();
       String nodeName = getLocalName(prntNode);
       String nodePrefix = getNodePrefix(prntNode);
+      String nodeText = node.getTextContent();
       NamespaceContextParams ncp = getLastElement(nodePrefix);
       for (QNameAwareParameter en : parameters.getQnameAwareXPathElements()) {
         if (nodeName.equals(en.getName()) && ncp.getUri().equals(en.getNs())) {
-          String nodeText = node.getTextContent();
           NSContext nsContext = xpathesNsMap.get(nodeText);
           List<String> xpathNs = nsContext.getXpathNs();
-          StringBuilder sb = new StringBuilder(nodeText.length());
+          StringBuffer sb = new StringBuffer(nodeText.length());
           int baseTextIdx = 0;
           if (xpathNs.size() > 0) {
             Iterator<String> it = xpathNs.iterator();
@@ -297,9 +309,9 @@ class DOMCanonicalizerHandler {
             for (int i = 0; i < words.size(); i++) {
               Object obj = words.elementAt(i);
               String word = obj.toString();
-              int idx = nodeText.indexOf(word, baseTextIdx);
+              int idx = StringUtils.indexOf(nodeText, word, baseTextIdx);
               if (idx != baseTextIdx) {
-                sb.append(nodeText.substring(baseTextIdx, idx));
+                sb.append(StringUtils.substring(nodeText, baseTextIdx, idx));
                 baseTextIdx = idx;
               }
               if (!(obj instanceof XString)
@@ -310,7 +322,7 @@ class DOMCanonicalizerHandler {
                 if (it.hasNext())
                   ns = it.next();
                 else {
-                  sb.append(nodeText.substring(baseTextIdx));
+                  sb.append(StringUtils.substring(nodeText, baseTextIdx));
                   break;
                 }
               } else {
@@ -324,7 +336,7 @@ class DOMCanonicalizerHandler {
       }
     }
 
-    outputBuffer.append(text);
+    StringUtils.join(outputBuffer,text);
   }
 
   /**
@@ -347,7 +359,7 @@ class DOMCanonicalizerHandler {
     if (bStart && getNodeDepth(node) == 1) {
       output.append("\n");
     }
-    outputBuffer.append(output);
+    StringUtils.join(outputBuffer,output);
   }
 
   /**
@@ -369,7 +381,8 @@ class DOMCanonicalizerHandler {
     if (bStart && getNodeDepth(node) == 1) {
       output.append("\n");
     }
-    outputBuffer.append(output);
+    StringUtils.join(outputBuffer,output);
+
   }
 
   /**
@@ -380,7 +393,8 @@ class DOMCanonicalizerHandler {
    */
   protected void processCData(Node node) {
     LOGGER.debug("processCData:" + node);
-    outputBuffer.append(processText(node.getNodeValue(), false));
+    StringUtils.join(outputBuffer,processText(node.getNodeValue(), false));
+
   }
 
   /**
@@ -466,20 +480,18 @@ class DOMCanonicalizerHandler {
    *          DOM node
    */
   private void removeNamespaces(Node node) {
-    for (String prefix : namespaces.keySet()) {
-      List<NamespaceContextParams> nsLevels = namespaces.get(prefix);
-      while (!nsLevels.isEmpty()
-          && getLastElement(prefix).getDepth() >= getNodeDepth(node)) {
-        nsLevels.remove(nsLevels.size() - 1);
-      }
-    }
+	int nDepth = getNodeDepth(node);
+    for (Iterator<Map.Entry<String, List<NamespaceContextParams>>> it = namespaces.entrySet().iterator(); it.hasNext(); ) {
+      Map.Entry<String, List<NamespaceContextParams>> entry = it.next();
+      List<NamespaceContextParams> nsLevels = entry.getValue();
+      while (!nsLevels.isEmpty() &&
+    		 nsLevels.get(nsLevels.size() - 1).getDepth() >= nDepth) {
 
-    Iterator<Entry<String, List<NamespaceContextParams>>> it = namespaces
-        .entrySet().iterator();
-    while (it.hasNext()) {
-      Entry<String, List<NamespaceContextParams>> en = it.next();
-      if (en.getValue().size() == 0)
-        it.remove();
+    	  nsLevels.remove(nsLevels.size() - 1);
+      }
+      if (nsLevels.isEmpty()) {
+    	  it.remove();
+      }
     }
   }
 
@@ -569,6 +581,16 @@ class DOMCanonicalizerHandler {
 
     List<NamespaceContextParams> outNSList = new ArrayList<NamespaceContextParams>();
 
+    String nPrefix = getNodePrefix(node);
+
+    String childText = null;
+    if (parameters.getQnameAwareElements().size() > 0 ||
+    	(parameters.getQnameAwareXPathElements().size() > 0 &&
+    	 node.getChildNodes().getLength() == 1)) {
+    	
+        childText = node.getTextContent();
+    }
+    
     int depth = getNodeDepth(node);
     for (String prefix : namespaces.keySet()) {
       NamespaceContextParams ncp = getLastElement(prefix);
@@ -581,7 +603,7 @@ class DOMCanonicalizerHandler {
         ncp = entry;
       }
       if (ncp.isHasOutput() != null && !ncp.isHasOutput()) {
-        if (isPrefixVisible(node, prefix)) {
+        if (isPrefixVisible(node, prefix, childText, nPrefix)) {
           NamespaceContextParams entry = ncp.clone();
           entry.setPrefix(prefix);
           outNSList.add(entry);
@@ -622,146 +644,38 @@ class DOMCanonicalizerHandler {
    * @param node
    *          DOM node
    */
-  private void addNamespaces_old(Node node) {
-    // тут мы добавим перебор парентов для данной ноды, что б запомнить все NS из документа
-    do {
-      if (node.getAttributes() != null)
-      for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
-        Node attr = node.getAttributes().item(ni);
-        if (isInExcludeList(attr))
-          continue;
-        String prefix = getLocalName(attr);
-  
-        String prfxNs = getNodePrefix(attr);
-  
-        if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
-          if (NS.equals(prefix)) {
-            prefix = "";
-          }
-  
-          String uri = attr.getNodeValue();
-  
-          List<NamespaceContextParams> stack = namespaces.get(prefix);
-          if (stack != null && uri.equals(getLastElement(prefix).getUri()))
-            continue;
-  
-          if (!namespaces.containsKey((prefix))) {
-            namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
-          }
-          NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
-              prefix, getNodeDepth(node));
-          if (namespaces.get(prefix).size() == 0
-              || getNodeDepth(node) != getLastElement(prefix).getDepth())
-            namespaces.get(prefix).add(nsp);
-          else
-            namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
-        }
-      }
-      // пометим текущую ноду как проверенную
-      checkedNamespaceNodes.add(node);
-      
-      boolean finded = false;
-      do {
-        node = node.getParentNode();
-        if (node == null){
-          break;
-        }
-        else {
-          for (Node n : checkedNamespaceNodes){
-            if (n.isSameNode(node)){
-              finded = false;
-              break;
-            }
-            else {
-              finded = true;
-            }
-          }
-        }
-        
-      }
-      while (node != null && !finded);
-      
-      
-    } while (node != null);
-
-  }
-  
-  /**
-   * Add namespaces to stack.
-   * 
-   * @param node
-   *          DOM node
-   */
   private void addNamespaces(Node node) {
-    // тут мы добавим перебор парентов для данной ноды, что б запомнить все NS из документа
-    // вытащим всех парентов данной ноды - и добавим их в лист нод на добавление
-    List<Node> nodesToCheckNamespace = new LinkedList<Node>();
-    nodesToCheckNamespace.add(node);
-    Node origNode = node;
-    boolean finded = false;
-    do {
-      node = node.getParentNode();
-      if (node == null){
-        break;
-      }
-      else {
-        finded = false;
-        for (Node n : checkedNamespaceNodes){
-          if (n.isSameNode(node)){
-            finded = finded || true;
-          }
-          else {
-            finded = finded || false;
-          }
-        }
-        if (!finded) {
-          nodesToCheckNamespace.add(node);
-          checkedNamespaceNodes.add(node);
-        }
-      }
-      
-    }
-    while (node != null); // && !finded);
-    
-    Collections.reverse(nodesToCheckNamespace);
-    
-    // перебор всех
-    for (Node cur_node: nodesToCheckNamespace){
-      if (cur_node.getAttributes() != null)
-      for (int ni = 0; ni < cur_node.getAttributes().getLength(); ni++) {
-        Node attr = cur_node.getAttributes().item(ni);
-        if (isInExcludeList(attr))
-          continue;
-        String prefix = getLocalName(attr);
-  
-        String prfxNs = getNodePrefix(attr);
-  
-        if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
-          if (NS.equals(prefix)) {
-            prefix = "";
-          }
-  
-          String uri = attr.getNodeValue();
-  
-          List<NamespaceContextParams> stack = namespaces.get(prefix);
-          if (stack != null && uri.equals(getLastElement(prefix).getUri()))
-            continue;
-  
-          if (!namespaces.containsKey((prefix))) {
-            namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
-          }
-          NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
-              prefix, getNodeDepth(cur_node));
-          if (namespaces.get(prefix).size() == 0
-              || getNodeDepth(cur_node) != getLastElement(prefix).getDepth())
-            namespaces.get(prefix).add(nsp);
-          else
-            namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
-        }
-      }
-      
-    }
+    for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
+      Node attr = node.getAttributes().item(ni);
+      if (isInExcludeList(attr))
+        continue;
+      String prefix = getLocalName(attr);
 
+      String prfxNs = getNodePrefix(attr);
+
+      if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
+        if (NS.equals(prefix)) {
+          prefix = "";
+        }
+
+        String uri = attr.getNodeValue();
+
+        List<NamespaceContextParams> stack = namespaces.get(prefix);
+        if (stack != null && uri.equals(getLastElement(prefix).getUri()))
+          continue;
+
+        if (!namespaces.containsKey((prefix))) {
+          namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
+        }
+        NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
+            prefix, getNodeDepth(node));
+        if (namespaces.get(prefix).size() == 0
+            || getNodeDepth(node) != getLastElement(prefix).getDepth())
+          namespaces.get(prefix).add(nsp);
+        else
+          namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
+      }
+    }
   }
 
   /**
@@ -775,9 +689,9 @@ class DOMCanonicalizerHandler {
    * @return Returns true if prefix is shown in the output of the node, false -
    *         otherwise.
    */
-  private boolean isPrefixVisible(Node node, String prefix) {
-    String nodePrefix = getNodePrefix(node);
-    if (nodePrefix.equals(prefix)) {
+  private boolean isPrefixVisible(Node node, String prefix, String childText, String nPrefix) {
+
+    if (nPrefix.equals(prefix)) {
       return true;
     }
 
@@ -785,11 +699,12 @@ class DOMCanonicalizerHandler {
     if (parameters.getQnameAwareElements().size() > 0) {
       NamespaceContextParams ncp = getLastElement(prefix);
       String prfx = ncp.getPrefix();
-      String childText = node.getTextContent();
-      // Делаем trim(), так как text может начинаться с пробелов
-      if (childText != null && childText.trim().startsWith(prfx + C)
+      if (childText == null) {
+    	  childText = node.getTextContent();
+      }
+      if (childText != null && childText.startsWith(prfx + C)
           && node.getChildNodes().getLength() == 1) {
-        NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
+        NamespaceContextParams attrPrfxNcp = getLastElement(nPrefix);
         for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
           if (nodeLocalName.equals(en.getName())
               && en.getNs().equals(attrPrfxNcp.getUri())) {
@@ -800,8 +715,10 @@ class DOMCanonicalizerHandler {
     }
     if (parameters.getQnameAwareXPathElements().size() > 0
         && node.getChildNodes().getLength() == 1) {
-      NamespaceContextParams ncp = getLastElement(nodePrefix);
-      String childText = node.getTextContent();
+      NamespaceContextParams ncp = getLastElement(nPrefix);
+      if (childText == null) {
+    	  childText = node.getTextContent();
+      }
       for (QNameAwareParameter en : parameters.getQnameAwareXPathElements()) {
         if (nodeLocalName.equals(en.getName())
             && ncp.getUri().equals(en.getNs())) {
@@ -862,16 +779,16 @@ class DOMCanonicalizerHandler {
    * @return replacement text
    */
   private String processText(String text, boolean bAttr) {
-    text = text.replace("&", "&amp;");
-    text = text.replace("<", "&lt;");
+    text = StringUtils.replace(text,"&", "&amp;");
+    text = StringUtils.replace(text, "<", "&lt;");
     if (!bAttr) {
-      text = text.replace(">", "&gt;");
+      text = StringUtils.replace(text, ">", "&gt;");
     } else {
-      text = text.replace("\"", "&quot;");
-      text = text.replace("#xA", "&#xA;");
-      text = text.replace("#x9", "&#x9;");
+      text = StringUtils.replace(text, "\"", "&quot;");
+      text = StringUtils.replace(text, "#xA", "&#xA;");
+      text = StringUtils.replace(text, "#x9", "&#x9;");
     }
-    text = text.replace("#xD", "&#xD;");
+    text = StringUtils.replace(text, "#xD", "&#xD;");
     return text;
   }
 
@@ -914,7 +831,6 @@ class DOMCanonicalizerHandler {
    */
   private NamespaceContextParams getLastElement(String key, int shift) {
     List<NamespaceContextParams> lst = namespaces.get(key);
-    if (lst == null) return null;
     return lst.size() + shift > -1 ? lst.get(lst.size() + shift) : null;
   }
 
@@ -932,7 +848,7 @@ class DOMCanonicalizerHandler {
       String name = node.getNodeName();
       int idx = name.indexOf(C);
       if (idx > -1)
-        return name.substring(0, idx);
+        return StringUtils.substring(name,0, idx);
     }
     return prfx;
   }
