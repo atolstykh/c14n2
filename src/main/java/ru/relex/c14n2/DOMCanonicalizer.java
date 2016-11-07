@@ -15,14 +15,14 @@ import org.w3c.dom.NodeList;
 public class DOMCanonicalizer {
 
   private DOMCanonicalizerHandler canonicalizer = null;
-  private Document doc = null;
+  private Node node = null;
   private List<Node> nodes = new ArrayList<Node>();
   private List<Node> includeList = null;
 
   /**
    * Constructor.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param includeList
    *          inclusion list
@@ -33,15 +33,15 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  private DOMCanonicalizer(Document doc, List<Node> includeList,
+  private DOMCanonicalizer(Node node, List<Node> includeList,
       List<Node> excludeList, Parameters params) throws Exception {
-    if (doc == null) {
+    if (node == null) {
       throw new NullPointerException();
     }
 
     this.includeList = includeList != null && includeList.isEmpty() ? null
         : includeList;
-    this.doc = doc;
+    this.node = node;
     StringBuffer sb = new StringBuffer();
     canonicalizer = new DOMCanonicalizerHandler(
         params == null ? new Parameters() : params, excludeList != null
@@ -51,22 +51,22 @@ public class DOMCanonicalizer {
   /**
    * Constructor.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param params
    *          canonicalization parameters
    * 
    * @throws Exception
    */
-  public static String canonicalize(Document doc, Parameters params)
+  public static String canonicalize(Node node, Parameters params)
       throws Exception {
-    return canonicalize(doc, null, null, params);
+    return canonicalize(node, null, null, params);
   }
 
   /**
    * Constructor.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param includeList
    *          inclusion list
@@ -75,15 +75,15 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  public static String canonicalize(Document doc, List<Node> includeList,
+  public static String canonicalize(Node node, List<Node> includeList,
       Parameters params) throws Exception {
-    return canonicalize(doc, includeList, null, params);
+    return canonicalize(node, includeList, null, params);
   }
 
   /**
    * Canonicalization method.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param includeList
    *          inclusion list
@@ -96,9 +96,9 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  public static String canonicalize(Document doc, List<Node> includeList,
+  public static String canonicalize(Node node, List<Node> includeList,
       List<Node> excludeList, Parameters params) throws Exception {
-    return new DOMCanonicalizer(doc, includeList, excludeList, params)
+    return new DOMCanonicalizer(node, includeList, excludeList, params)
         .canonicalizeSubTree();
   }
 
@@ -111,7 +111,7 @@ public class DOMCanonicalizer {
    */
   private String canonicalizeSubTree() throws Exception {
     if (includeList == null) {
-      process(doc);
+      process(node);
     } else {
       processIncludeList();
       while (nodes.size() > 0) {
