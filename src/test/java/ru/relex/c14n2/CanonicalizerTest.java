@@ -478,8 +478,8 @@ public class CanonicalizerTest {
       }
     }
     if (!b) {
-      System.out.println("---Result---\n" + baos.toString("UTF-8")
-          + "\n---Base---\n" + result + "---time---\n" + l / 1000.0
+      System.out.println("---Result---\n" + result
+          + "\n---Base---\n" + baos.toString("UTF-8") + "---time---\n" + l / 1000.0
           + "\n------");
     } else {
       System.out.println("Test " + testNumber + " (" + l / 1000.0

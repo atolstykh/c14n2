@@ -1,12 +1,6 @@
 package ru.relex.c14n2;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.apache.xml.utils.ObjectVector;
@@ -34,19 +28,16 @@ class DOMCanonicalizerHandler {
   private static final String CF = "&#x%s;";
   private static final String C = ":";
 
-  private static final byte[] XD = {'&','#','x','D',';'};
-  private static final byte[] GT = {'&','g','t',';'};
-  private static final byte[] LT = {'&','l','t',';'};
-  private static final byte[] AMP = {'&','a','m','p',';'};
-    
   private List<Node> excludeList;
   private Parameters parameters;
-  private StringBuffer outputBuffer;
+  private StringBuilder outputBuffer;
 
   private boolean bStart = true;
   private boolean bEnd = false;
 
   private Map<String, List<NamespaceContextParams>> namespaces;
+
+  private Map<String, NamespaceContextParams> parentNamespaces;
   private Map<String, String> sequentialUriMap = new HashMap<String, String>();
   private boolean bSequential = false;
 
@@ -63,13 +54,14 @@ class DOMCanonicalizerHandler {
    *          output
    */
   protected DOMCanonicalizerHandler(Parameters parameters,
-      List<Node> excludeList, StringBuffer outputBuffer) {
+      List<Node> excludeList, StringBuilder outputBuffer) {
     this.parameters = parameters;
     this.outputBuffer = outputBuffer;
     this.excludeList = excludeList;
     bSequential = parameters.getPrefixRewrite().equals(Parameters.SEQUENTIAL);
 
     namespaces = new HashMap<String, List<NamespaceContextParams>>();
+    parentNamespaces = new HashMap<String, NamespaceContextParams>();
 
     List<NamespaceContextParams> lst = new ArrayList<NamespaceContextParams>();
     NamespaceContextParams ncp = new NamespaceContextParams();
@@ -102,14 +94,13 @@ class DOMCanonicalizerHandler {
 
     List<NamespaceContextParams> outNSList = processNamespaces(node);
 
-    StringBuffer output = new StringBuffer();
     String prfx = getNodePrefix(node);
     NamespaceContextParams ncp = getLastElement(prfx);
     String localName = getLocalName(node);
     if (namespaces.containsKey(prfx) && !ncp.getNewPrefix().isEmpty()) {
-      output.append(String.format("<%s:%s", ncp.getNewPrefix(), localName));
+      outputBuffer.append(String.format("<%s:%s", ncp.getNewPrefix(), localName));
     } else {
-      output.append(String.format("<%s", localName));
+      outputBuffer.append(String.format("<%s", localName));
     }
 
     List<Attribute> outAttrsList = processAttributes(node);
@@ -137,9 +128,9 @@ class DOMCanonicalizerHandler {
       String nsName = namespace.getNewPrefix();
       String nsUri = namespace.getUri();
       if (!nsName.equals(DEFAULT_NS)) {
-        output.append(String.format(" %s:%s=\"%s\"", NS, nsName, nsUri));
+        outputBuffer.append(String.format(" %s:%s=\"%s\"", NS, nsName, nsUri));
       } else {
-        output.append(String.format(" %s=\"%s\"", NS, nsUri));
+        outputBuffer.append(String.format(" %s=\"%s\"", NS, nsUri));
       }
     }
 
@@ -149,10 +140,10 @@ class DOMCanonicalizerHandler {
       String attrValue = attribute.getValue();
       if (!bSequential) {
         if (!attrPrfx.equals(DEFAULT_NS)) {
-          output.append(String.format(" %s:%s=\"%s\"", attrPrfx, attrName,
+          outputBuffer.append(String.format(" %s:%s=\"%s\"", attrPrfx, attrName,
               attrValue));
         } else {
-          output.append(String.format(" %s=\"%s\"", attrName, attrValue));
+          outputBuffer.append(String.format(" %s=\"%s\"", attrName, attrValue));
         }
       } else {
         if (parameters.getQnameAwareAttributes().size() > 0) {
@@ -175,17 +166,15 @@ class DOMCanonicalizerHandler {
         }
         String attrNewPrfx = attribute.getNewPrefix();
         if (!attrPrfx.equals("")) {
-          output.append(String.format(" %s:%s=\"%s\"", attrNewPrfx, attrName,
+          outputBuffer.append(String.format(" %s:%s=\"%s\"", attrNewPrfx, attrName,
               attrValue));
         } else {
-          output.append(String.format(" %s=\"%s\"", attrName, attrValue));
+          outputBuffer.append(String.format(" %s=\"%s\"", attrName, attrValue));
         }
       }
     }
 
-    output.append(">");
-
-    StringUtils.join(outputBuffer,output);
+    outputBuffer.append(">");
   }
   
   /**
@@ -198,14 +187,13 @@ class DOMCanonicalizerHandler {
     if (isInExcludeList(node))
       return;
 
-    StringBuffer output = new StringBuffer();
     String prfx = getNodePrefix(node);
     NamespaceContextParams ncp = getLastElement(prfx);
     String localName = getLocalName(node);
     if (namespaces.containsKey(prfx) && !ncp.getNewPrefix().isEmpty()) {
-      output.append(String.format("</%s:%s>", ncp.getNewPrefix(), localName));
+      outputBuffer.append(String.format("</%s:%s>", ncp.getNewPrefix(), localName));
     } else {
-      output.append(String.format("</%s>", localName));
+      outputBuffer.append(String.format("</%s>", localName));
     }
 
     removeNamespaces(node);
@@ -213,8 +201,6 @@ class DOMCanonicalizerHandler {
     if (getNodeDepth(node) == 1) {
       bEnd = true;
     }
-
-    StringUtils.join(outputBuffer,output);
   }
 
   /**
@@ -231,10 +217,25 @@ class DOMCanonicalizerHandler {
     }
 
     String text = node.getNodeValue() != null ? node.getNodeValue() : "";
+    text = processText(text,false);
+
+    StringBuilder value = new StringBuilder();
+    for (int i = 0; i < text.length(); i++) {
+      char codepoint = text.charAt(i);
+      if (codepoint == 13) {
+        value.append(String.format(CF, Integer.toHexString(codepoint)
+                .toUpperCase()));
+      } else {
+        value.append(codepoint);
+      }
+    }
+/*    text = value.toString();
+
 
     StringBuffer value = new StringBuffer(text.length());
     for (int i = 0; i < text.length(); i++) {
       char codepoint = text.charAt(i);
+
       if (codepoint == '&') {
     	  value.append(AMP);
       }
@@ -250,8 +251,9 @@ class DOMCanonicalizerHandler {
       else {
         value.append(codepoint);
       }
-    }
+    } */
     text = value.toString();
+
 
     if (parameters.isTrimTextNodes()) {
       boolean b = true;
@@ -336,7 +338,7 @@ class DOMCanonicalizerHandler {
       }
     }
 
-    StringUtils.join(outputBuffer,text);
+    outputBuffer.append(text);
   }
 
   /**
@@ -350,16 +352,15 @@ class DOMCanonicalizerHandler {
     String nodeName = node.getNodeName();
     String nodeValue = node.getNodeValue() != null ? node.getNodeValue() : "";
 
-    StringBuffer output = new StringBuffer();
     if (bEnd && getNodeDepth(node) == 1) {
-      output.append("\n");
+      outputBuffer.append("\n");
     }
-    output.append(String.format("<?%s%s?>", nodeName,
+    outputBuffer.append(String.format("<?%s%s?>", nodeName,
         !nodeValue.isEmpty() ? (" " + nodeValue) : ""));
     if (bStart && getNodeDepth(node) == 1) {
-      output.append("\n");
+      outputBuffer.append("\n");
     }
-    StringUtils.join(outputBuffer,output);
+
   }
 
   /**
@@ -373,15 +374,13 @@ class DOMCanonicalizerHandler {
     if (parameters.isIgnoreComments())
       return;
 
-    StringBuffer output = new StringBuffer();
     if (bEnd && getNodeDepth(node) == 1) {
-      output.append("\n");
+      outputBuffer.append("\n");
     }
-    output.append(String.format("<!--%s-->", node.getNodeValue()));
+    outputBuffer.append(String.format("<!--%s-->", node.getNodeValue()));
     if (bStart && getNodeDepth(node) == 1) {
-      output.append("\n");
+      outputBuffer.append("\n");
     }
-    StringUtils.join(outputBuffer,output);
 
   }
 
@@ -393,7 +392,7 @@ class DOMCanonicalizerHandler {
    */
   protected void processCData(Node node) {
     LOGGER.debug("processCData:" + node);
-    StringUtils.join(outputBuffer,processText(node.getNodeValue(), false));
+    outputBuffer.append(processText(node.getNodeValue(), false));
 
   }
 
@@ -402,7 +401,7 @@ class DOMCanonicalizerHandler {
    * 
    * @return Returns an output buffer
    */
-  protected StringBuffer getOutputBlock() {
+  protected StringBuilder getOutputBlock() {
     return outputBuffer;
   }
 
@@ -779,6 +778,7 @@ class DOMCanonicalizerHandler {
    * @return replacement text
    */
   private String processText(String text, boolean bAttr) {
+
     text = StringUtils.replace(text,"&", "&amp;");
     text = StringUtils.replace(text, "<", "&lt;");
     if (!bAttr) {
@@ -831,7 +831,11 @@ class DOMCanonicalizerHandler {
    */
   private NamespaceContextParams getLastElement(String key, int shift) {
     List<NamespaceContextParams> lst = namespaces.get(key);
-    return lst.size() + shift > -1 ? lst.get(lst.size() + shift) : null;
+    if (lst!=null)
+      return lst.size() + shift > -1 ? lst.get(lst.size() + shift) : null;
+    else {
+      return parentNamespaces.get(key);
+    }
   }
 
   /**
@@ -852,4 +856,52 @@ class DOMCanonicalizerHandler {
     }
     return prfx;
   }
+
+
+
+  /**
+   * primer:  canonicalization of element ds:SignedInfo required namespace difinition xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+   * in the parent node ds:Signature.
+   * Load all namespace definitions for canonicalized element before canonicalization process start.
+   */
+
+  protected void appendNamespaceDefinitionsBeforeCanonicalization(Node node) {
+    Node current = node;
+
+    // processing up to root
+    while((current=current.getParentNode())!=null && (current.getNodeType()!=Node.DOCUMENT_NODE)) {
+      loadParentsNamespaces(current);
+    }
+
+  }
+
+  private void loadParentsNamespaces(Node node) {
+
+    for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
+      Node attr = node.getAttributes().item(ni);
+      if (isInExcludeList(attr))
+        continue;
+      String prefix = getLocalName(attr);
+
+      String prfxNs = getNodePrefix(attr);
+
+      if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
+        if (NS.equals(prefix)) {
+          prefix = "";
+        }
+
+        String uri = attr.getNodeValue();
+
+        NamespaceContextParams namespaceContextParams = parentNamespaces.get(prefix);
+        if (namespaceContextParams != null)
+          continue;
+
+        namespaceContextParams = new NamespaceContextParams(uri, false,
+                prefix, - getNodeDepth(node));
+        parentNamespaces.put(prefix,namespaceContextParams);
+
+      }
+    }
+  }
+
 }

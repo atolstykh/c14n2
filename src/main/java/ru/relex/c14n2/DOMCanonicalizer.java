@@ -1,11 +1,7 @@
 package ru.relex.c14n2;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -42,7 +38,7 @@ public class DOMCanonicalizer {
     this.includeList = includeList != null && includeList.isEmpty() ? null
         : includeList;
     this.node = node;
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     canonicalizer = new DOMCanonicalizerHandler(
         params == null ? new Parameters() : params, excludeList != null
             && excludeList.isEmpty() ? null : excludeList, sb);
@@ -183,6 +179,7 @@ public class DOMCanonicalizer {
   private void process(Node node) {
     if (canonicalizer.isInExcludeList(node))
       return;
+    canonicalizer.appendNamespaceDefinitionsBeforeCanonicalization(node);
 
     switch (node.getNodeType()) {
     case Node.ELEMENT_NODE:
