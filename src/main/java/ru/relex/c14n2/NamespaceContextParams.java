@@ -4,50 +4,34 @@ package ru.relex.c14n2;
  * The internal representation of the namespace declaration (xmlns attribure).
  */
 class NamespaceContextParams {
-  private String uri = "";
   private String prefix = "";
-  private int depth = 1;
+  private int definitionDepth = 1;
   private String newPrefix = "";
-  private Boolean hasOutput = null;
+  private Boolean hasOutput = false;
+  private Boolean toOutput =false;
+  private int outputDepth = -1;
 
   /**
    * Constructor.
-   * 
-   * @param uri
-   *          URI
    * @param hasOutput
    *          output flag
    * @param newPrefix
    *          new local name
-   * @param depth
-   *          depth of the node
+   * @param definitionDepth
+   *          definitionDepth of the node
    */
-  public NamespaceContextParams(String uri, boolean hasOutput,
-      String newPrefix, int depth) {
-    setUri(uri);
+  public NamespaceContextParams(boolean hasOutput,
+      String newPrefix, int definitionDepth) {
     setHasOutput(hasOutput);
     setNewPrefix(newPrefix);
     setPrefix(newPrefix);
-    setDepth(depth);
+    setDefinitionDepth(definitionDepth);
   }
 
   /**
    * Constructor.
    */
   public NamespaceContextParams() {
-  }
-
-  /**
-   * Returns the URI of this attribute.
-   * 
-   * @return Returns the URI
-   */
-  public String getUri() {
-    return uri;
-  }
-
-  public void setUri(String uri) {
-    this.uri = uri;
   }
 
   /**
@@ -79,16 +63,16 @@ class NamespaceContextParams {
   }
 
   /**
-   * Returns the depth of the parent node in the DOM tree.
+   * Returns the definitionDepth of the parent node in the DOM tree.
    * 
-   * @return Returns the depth
+   * @return Returns the definitionDepth
    */
-  public int getDepth() {
-    return depth;
+  public int getDefinitionDepth() {
+    return definitionDepth;
   }
 
-  public void setDepth(int depth) {
-    this.depth = depth;
+  public void setDefinitionDepth(int definitionDepth) {
+    this.definitionDepth = definitionDepth;
   }
 
   /**
@@ -104,16 +88,12 @@ class NamespaceContextParams {
     this.prefix = prefix;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  public NamespaceContextParams clone() {
-    NamespaceContextParams ncp = new NamespaceContextParams();
-    ncp.depth = depth;
-    ncp.hasOutput = hasOutput;
-    ncp.newPrefix = newPrefix;
-    ncp.prefix = prefix;
-    ncp.uri = uri;
-    return ncp;
+
+  public Boolean isToOutput() {
+    return toOutput;
+  }
+
+  public void setToOutput(Boolean toOutput) {
+    this.toOutput = toOutput;
   }
 }

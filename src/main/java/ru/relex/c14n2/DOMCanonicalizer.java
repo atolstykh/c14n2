@@ -39,7 +39,7 @@ public class DOMCanonicalizer {
         : includeList;
     this.node = node;
     StringBuilder sb = new StringBuilder();
-    canonicalizer = new DOMCanonicalizerHandler(
+    canonicalizer = new DOMCanonicalizerHandler(node,
         params == null ? new Parameters() : params, excludeList != null
             && excludeList.isEmpty() ? null : excludeList, sb);
   }
@@ -134,8 +134,8 @@ public class DOMCanonicalizer {
     Collections.sort(allNodes, new Comparator<Node>() {
       @Override
       public int compare(Node n1, Node n2) {
-        int l1 = canonicalizer.getNodeDepth(n1);
-        int l2 = canonicalizer.getNodeDepth(n2);
+        int l1 = getNodeDepth(n1);
+        int l2 = getNodeDepth(n2);
         if (l1 != l2) {
           return l1 - l2;
         } else {
@@ -170,6 +170,17 @@ public class DOMCanonicalizer {
     nodes = allNodes;
   }
 
+  protected int getNodeDepth(Node node) {
+    int i = -1;
+    Node prnt = node;
+    do {
+      i++;
+      prnt = prnt.getParentNode();
+    } while (prnt != null);
+    return i;
+  }
+
+
   /**
    * Processing a node.
    * 
@@ -179,8 +190,6 @@ public class DOMCanonicalizer {
   private void process(Node node) {
     if (canonicalizer.isInExcludeList(node))
       return;
-    canonicalizer.appendNamespaceDefinitionsBeforeCanonicalization(node);
-
     switch (node.getNodeType()) {
     case Node.ELEMENT_NODE:
       canonicalizer.processElement(node);

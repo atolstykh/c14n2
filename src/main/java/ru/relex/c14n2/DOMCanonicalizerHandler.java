@@ -1,17 +1,15 @@
 package ru.relex.c14n2;
 
 import java.util.*;
-import java.util.Map.Entry;
 
-import org.apache.xml.utils.ObjectVector;
-import org.apache.xpath.compiler.XPathParser;
-import org.apache.xpath.objects.XString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Node;
 import org.w3c.dom.NamedNodeMap;
 import org.apache.commons.lang3.StringUtils;
+import ru.relex.c14n2.util.NSDeclaration;
+import ru.relex.c14n2.util.PrefixesContainer;
 
 /**
  * C14N2 canonicalizer.
@@ -20,25 +18,39 @@ class DOMCanonicalizerHandler {
   private static final Logger LOGGER = LoggerFactory
       .getLogger(DOMCanonicalizerHandler.class);
 
-  private static final String DEFAULT_NS = "";
-  private static final String NS = "xmlns";
+  private static final String EMPTY_URI = "";
+  private static final String EMPTY_PREFIX = "";
+  private static final String XMLNS = "xmlns";
   private static final String XML = "xml";
   private static final String XSD = "xsd";
 
   private static final String CF = "&#x%s;";
   private static final String C = ":";
+  private static final int ID_ARRAY_CAPACITY = 20;
 
   private List<Node> excludeList;
   private Parameters parameters;
   private StringBuilder outputBuffer;
+  private int nodeDepth = 0;
+  private int[] nextIdArray;
 
-  private boolean bStart = true;
-  private boolean bEnd = false;
 
-  private Map<String, List<NamespaceContextParams>> namespaces;
+  //
+  //       firstKey - prefix
+  //       secondKey - url
+  private PrefixesContainer declaredPrefixes;
 
-  private Map<String, NamespaceContextParams> parentNamespaces;
-  private Map<String, String> sequentialUriMap = new HashMap<String, String>();
+  //
+  // PrefixRewrite none:
+  //       firstKey - prefix
+  //       secondKey - url
+  // PrefixRewrite sequence:
+  //       firstKey - url
+  //       secondKey - prefix
+  private PrefixesContainer usedPrefixes;
+
+
+
   private boolean bSequential = false;
 
   private Map<String, NSContext> xpathesNsMap = new HashMap<String, NSContext>();
@@ -53,27 +65,25 @@ class DOMCanonicalizerHandler {
    * @param outputBuffer
    *          output
    */
-  protected DOMCanonicalizerHandler(Parameters parameters,
+  protected DOMCanonicalizerHandler(Node node, Parameters parameters,
       List<Node> excludeList, StringBuilder outputBuffer) {
     this.parameters = parameters;
     this.outputBuffer = outputBuffer;
     this.excludeList = excludeList;
+    this.declaredPrefixes  = new PrefixesContainer();
+    this.usedPrefixes = new PrefixesContainer();
+
     bSequential = parameters.getPrefixRewrite().equals(Parameters.SEQUENTIAL);
 
-    namespaces = new HashMap<String, List<NamespaceContextParams>>();
-    parentNamespaces = new HashMap<String, NamespaceContextParams>();
-
-    List<NamespaceContextParams> lst = new ArrayList<NamespaceContextParams>();
-    NamespaceContextParams ncp = new NamespaceContextParams();
+    // The default namespace is declared by xmlns="...". To make the algorithm simpler this will be treated as a
+    // namespace declaration whose prefix value is "" i.e. an empty string.
+    declaredPrefixes.definePrefix("","",0);
     if (bSequential) {
-      ncp.setNewPrefix(String.format("n%s", 0));
-      ncp.setHasOutput(false);
+      nextIdArray = new int[ID_ARRAY_CAPACITY]; // check
+      nextIdArray[0]=0;
     }
-    lst.add(ncp);
-    namespaces.put(DEFAULT_NS, lst);
 
-    bStart = true;
-    bEnd = false;
+    loadParentNamespaces(node);
   }
 
   /**
@@ -84,99 +94,243 @@ class DOMCanonicalizerHandler {
    */
   protected void processElement(Node node) {
     LOGGER.debug("processElement: {}", node);
-
     if (isInExcludeList(node))
       return;
+    nodeDepth++;
+    if (bSequential) {
+      if (nextIdArray.length==nodeDepth) {
+        int [] newArr = new int [nextIdArray.length+ID_ARRAY_CAPACITY];
+        System.arraycopy(nextIdArray,0,newArr,0,nextIdArray.length);
+        nextIdArray = newArr;
+      }
+      nextIdArray[nodeDepth]= nextIdArray[nodeDepth - 1];
 
-    if (getNodeDepth(node) == 1) {
-      bStart = false;
     }
+    addNamespaces(node);
 
-    List<NamespaceContextParams> outNSList = processNamespaces(node);
+    SortedSet<NSDeclaration> nsDeclarations = new TreeSet<NSDeclaration>();
+    evaluateUriVisibility(node,nsDeclarations);
 
-    String prfx = getNodePrefix(node);
-    NamespaceContextParams ncp = getLastElement(prfx);
-    String localName = getLocalName(node);
-    if (namespaces.containsKey(prfx) && !ncp.getNewPrefix().isEmpty()) {
-      outputBuffer.append(String.format("<%s:%s", ncp.getNewPrefix(), localName));
+    // write to outputBuffer
+
+    // startElement
+
+    String nodePrefix = getNodePrefix(node);
+
+    String nodeUri = getNamespaceURIByPrefix(nodePrefix);
+
+    String newPrefix = getNewPrefix(nodeUri,nodePrefix);
+
+
+    if (newPrefix==null || newPrefix.isEmpty()) {
+      outputBuffer.append(String.format("<%s", getLocalName(node)));
     } else {
-      outputBuffer.append(String.format("<%s", localName));
+      outputBuffer.append(String.format("<%s:%s",newPrefix, getLocalName(node)));
     }
 
-    List<Attribute> outAttrsList = processAttributes(node);
-
-    for (int i = outNSList.size() - 1; i > 0; i--) {
-      NamespaceContextParams ncp1 = outNSList.get(i);
-      for (int j = 0; j < i; j++) {
-        NamespaceContextParams ncp2 = outNSList.get(j);
-        if (ncp1.getNewPrefix().equals(ncp2.getNewPrefix())
-            && ncp1.getUri().equals(ncp2.getUri())) {
-          outNSList.remove(i);
-          break;
-        }
-      }
-    }
-
-    for (NamespaceContextParams namespace : outNSList) {
-      if ((prfx.equals(namespace.getPrefix()) && !ncp.getNewPrefix().equals(
-          namespace.getNewPrefix()))
-          || outputNSInParent(namespace.getPrefix())) {
-        ncp.setHasOutput(false);
-        continue;
-      }
-      ncp.setHasOutput(true);
-      String nsName = namespace.getNewPrefix();
-      String nsUri = namespace.getUri();
-      if (!nsName.equals(DEFAULT_NS)) {
-        outputBuffer.append(String.format(" %s:%s=\"%s\"", NS, nsName, nsUri));
+    // output namespace nodes
+    for (NSDeclaration nsDeclaration :  nsDeclarations) {
+      String nsName = nsDeclaration.getPrefix();
+      String nsUri = nsDeclaration.getUri();
+      if (!nsName.equals(EMPTY_URI)) {
+        outputBuffer.append(String.format(" %s:%s=\"%s\"", XMLNS, nsName, nsUri));
       } else {
-        outputBuffer.append(String.format(" %s=\"%s\"", NS, nsUri));
+        outputBuffer.append(String.format(" %s=\"%s\"", XMLNS, nsUri));
       }
     }
+
+    List<Attribute> outAttrsList = processAttributes(node,nodeUri);
 
     for (Attribute attribute : outAttrsList) {
-      String attrPrfx = attribute.getPrefix();
+
+      String attrPrfx = getNewPrefix(attribute.getUri(),attribute.getOldPrefix());
+
+
       String attrName = attribute.getLocalName();
       String attrValue = attribute.getValue();
-      if (!bSequential) {
-        if (!attrPrfx.equals(DEFAULT_NS)) {
-          outputBuffer.append(String.format(" %s:%s=\"%s\"", attrPrfx, attrName,
-              attrValue));
-        } else {
-          outputBuffer.append(String.format(" %s=\"%s\"", attrName, attrValue));
-        }
+      // According to the xml-c14n:
+      // "Note: unlike elements, if an attribute doesn't have a prefix, that means it is a locally scoped attribute."
+      // but we used attributeFormDefault="qualified"
+      if (attrPrfx==null && attribute.getLocalName().startsWith(XML)) {
+        // The "xml" and "xmlns" prefixes are reserved and have special behavior
+        outputBuffer.append(String.format(" %s=\"%s\"", attrName, attrValue));
       } else {
-        if (parameters.getQnameAwareAttributes().size() > 0) {
-          if (namespaces.containsKey(attrPrfx)) {
-            NamespaceContextParams attrPrfxNcp = getLastElement(attrPrfx);
-            for (QNameAwareParameter en : parameters.getQnameAwareAttributes()) {
-              if (attrName.equals(en.getName())
-                  && en.getNs().equals(attrPrfxNcp.getUri())) {
-                int idx = attrValue.indexOf(C);
-                if (idx > -1) {
-                  String attr_value_prfx = attrValue.substring(0, idx);
-                  if (namespaces.containsKey(attr_value_prfx)) {
-                    attrValue = getLastElement(attr_value_prfx).getNewPrefix()
-                        + C + attrValue.substring(idx + 1);
-                  }
-                }
-              }
-            }
+
+        if (attrPrfx.isEmpty() && attribute.isAttributeQualified()) {
+          if (!nodeUri.equals(attribute.getUri())) {
+            LOGGER.error("!!!");
+            throw new RuntimeException();
           }
+          attrPrfx = newPrefix;
         }
-        String attrNewPrfx = attribute.getNewPrefix();
-        if (!attrPrfx.equals("")) {
-          outputBuffer.append(String.format(" %s:%s=\"%s\"", attrNewPrfx, attrName,
-              attrValue));
-        } else {
+
+        if (!attribute.isAttributeQualified()) {
+          if (!nodeUri.equals(attribute.getUri())) {
+            LOGGER.error("!!!");
+            throw new RuntimeException();
+          }
+          attrPrfx = "";
+        }
+
+        if (attrPrfx.isEmpty()) {
           outputBuffer.append(String.format(" %s=\"%s\"", attrName, attrValue));
+        } else {
+          outputBuffer.append(String.format(" %s:%s=\"%s\"", attrPrfx, attrName, attrValue));
         }
       }
     }
 
     outputBuffer.append(">");
   }
-  
+
+  private String getNewPrefix(String nodeUri, String nodePrefix) {
+    if (bSequential) {
+      return usedPrefixes.getByFirstKey(nodeUri);
+    } else {
+      return nodePrefix;
+    }
+  }
+
+
+  private String getNamespaceURIByPrefix(String prefix) {
+    /*if (bSequential) {
+      String uri = declaredPrefixes.getByFirstKey(prefix);
+      return uri;
+    } else {
+      String uri = usedPrefixes.getByFirstKey(prefix);
+      if (uri==null) {
+        LOGGER.error("BAG!!");
+        throw new RuntimeException();
+      }
+      return uri;
+    } */
+    String uri = declaredPrefixes.getByFirstKey(prefix);
+    if (uri==null) {
+      LOGGER.error("BAG!!");
+      throw new RuntimeException();
+    }
+    return uri;
+
+  }
+
+  private List<Attribute> processAttributes(Node node, String nodeUri) {
+
+    // Sort all the attributes in increasing lexicographic order with namespace URI as the primary key and local name
+    // as the secondary key (an empty namespace URI is lexicographically least).
+
+    List<Attribute> attributeList = new LinkedList<Attribute>();
+    for (int ai = 0; ai < node.getAttributes().getLength(); ai++) {
+      Node attr = node.getAttributes().item(ai);
+
+
+      String suffix = getLocalName(attr);
+
+      String prfxNs = getNodePrefix(attr);
+
+      if (XMLNS.equals(prfxNs)) {
+        continue;
+      }
+      Attribute attribute = new Attribute();
+      attribute.setOldPrefix(prfxNs);
+      attribute.setLocalName(getLocalName(attr));
+      //Note: unlike elements, if an attribute doesn't have a prefix, that means it is a locally scoped attribute.
+      if (EMPTY_PREFIX.equals(prfxNs)) {
+        attribute.setUri(nodeUri);
+        attribute.setAttributeQualified(false);
+      } else {
+        if (!XML.equals(prfxNs))
+          attribute.setUri(getNamespaceURIByPrefix(prfxNs));
+        else {
+          // xml:space="preserver"
+          attribute.setLocalName(XML+":"+suffix);
+        }
+      }
+
+      String attrValue = attr.getNodeValue() != null ? attr.getNodeValue() : "";
+      attrValue = processText(attrValue, true);
+      StringBuffer value = new StringBuffer();
+      for (int i = 0; i < attrValue.length(); i++) {
+        char codepoint = attrValue.charAt(i);
+        if (codepoint == 9 || codepoint == 10 || codepoint == 13) {
+          value.append(String.format(CF, Integer.toHexString(codepoint)
+                  .toUpperCase()));
+        } else {
+          value.append(codepoint);
+        }
+      }
+      attribute.setValue(value.toString());
+      attributeList.add(attribute);
+    }
+
+    Comparator<Attribute> comparator = new Comparator<Attribute>() {
+      @Override
+      public int compare(Attribute attribute, Attribute t1) {
+        if (attribute.getUri().equals(t1.getUri())) {
+          return attribute.getLocalName().compareTo(t1.getLocalName());
+        }else {
+          return attribute.getUri().compareTo(t1.getUri());
+        }
+      }
+    };
+
+    Collections.sort(attributeList,comparator);
+    return attributeList;
+
+  }
+
+  /**
+   * evaluate prefixis for visible uri
+   * @return
+   */
+  /*private void evaluateUriPrefixMap(int nodeDepth) {
+
+    toOuputMap.clear();
+    uriPrefixMap.clear();
+
+    for (Map.Entry<String,Map<String,NamespaceContextParams>> entry:namespaces.entrySet()) {
+      Map<String,NamespaceContextParams> nMap = entry.getValue();
+      for (Map.Entry<String,NamespaceContextParams> ncEntry: nMap.entrySet()) {
+        if (ncEntry.getValue().isToOutput()) {
+          // url  -key , prefix - value
+          toOuputMap.put(entry.getKey(),ncEntry.getValue().getPrefix());
+        }
+        if (ncEntry.getValue().isHasOutput()) {
+          uriPrefixMap.put(entry.getKey(),ncEntry.getValue().getNewPrefix());
+        }
+
+      }
+    }
+    if (bSequential) {
+      Integer maxId = nextIdListStack.get(nextIdListStack.size() - 1);
+      for (Map.Entry<String,String> s : toOuputMap.entrySet()) {
+        if (!s.getKey().isEmpty()) {
+          String newPrefix = "n" + maxId;
+          uriPrefixMap.put(s.getKey(), newPrefix);
+          NamespaceContextParams lastestEntry = namespaces.get(s.getKey()).get(s.getValue());
+          lastestEntry.setNewPrefix(newPrefix);
+          maxId++;
+        } else {
+          // ns0
+          NamespaceContextParams lastestEntry = namespaces.get(s.getKey()).get(s.getValue());
+          uriPrefixMap.put(s.getKey(), lastestEntry.getNewPrefix());
+        }
+      }
+      nextIdListStack.set(nextIdListStack.size()-1,maxId);
+
+    } else {
+      for (Map.Entry<String,String> s : toOuputMap.entrySet()) {
+
+
+        NamespaceContextParams namespaceContextParams = getLastListElement(namespaces.get(s));
+
+
+        uriPrefixMap.put(s,namespaceContextParams.getPrefix());
+        namespaceContextParams.setNewPrefix(namespaceContextParams.getPrefix());
+      }
+    }
+
+  }*/
+
   /**
    * Completion of processing element node.
    * 
@@ -187,20 +341,20 @@ class DOMCanonicalizerHandler {
     if (isInExcludeList(node))
       return;
 
-    String prfx = getNodePrefix(node);
-    NamespaceContextParams ncp = getLastElement(prfx);
-    String localName = getLocalName(node);
-    if (namespaces.containsKey(prfx) && !ncp.getNewPrefix().isEmpty()) {
-      outputBuffer.append(String.format("</%s:%s>", ncp.getNewPrefix(), localName));
+    String nodePrefix = getNodePrefix(node);
+    String nodeUri = getNamespaceURIByPrefix(nodePrefix);
+
+
+    String elementPrefix = getNewPrefix(nodeUri,nodePrefix);
+
+    if (elementPrefix==null || elementPrefix.isEmpty()) {
+      outputBuffer.append(String.format("</%s>", getLocalName(node)));
     } else {
-      outputBuffer.append(String.format("</%s>", localName));
+      outputBuffer.append(String.format("</%s:%s>",elementPrefix, getLocalName(node)));
     }
 
     removeNamespaces(node);
-
-    if (getNodeDepth(node) == 1) {
-      bEnd = true;
-    }
+    nodeDepth--;
   }
 
   /**
@@ -212,9 +366,7 @@ class DOMCanonicalizerHandler {
   
   protected void processText(Node node) {
     LOGGER.debug("processText: {}", node);
-    if (getNodeDepth(node) < 2) {
-      return;
-    }
+
 
     String text = node.getNodeValue() != null ? node.getNodeValue() : "";
     text = processText(text,false);
@@ -274,33 +426,42 @@ class DOMCanonicalizerHandler {
       }
     }
 
+    /*
     if (parameters.getQnameAwareElements().size() > 0 && bSequential) {
       if (text.startsWith(XSD + C)) {
         if (namespaces.containsKey(XSD)) {
           Node prntNode = node.getParentNode();
           String nodeName = getLocalName(prntNode);
-          String nodePrefix = getNodePrefix(prntNode);
+          String nodeUri = getNamespaceURIByPrefix(prntNode);
           NamespaceContextParams ncp = getLastElement(XSD);
-          NamespaceContextParams attrPrfxNcp = getLastElement(nodePrefix);
           for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
             if (nodeName.equals(en.getName())
-                && en.getNs().equals(attrPrfxNcp.getUri())) {
+                && en.getNs().equals(nodeUri)) {
               text = StringUtils.join(ncp.getNewPrefix(), StringUtils.substring(text, XSD.length()));
             }
           }
         }
       }
-    }
-    if (parameters.getQnameAwareXPathElements().size() > 0 && bSequential
+    }*/
+    /*if (parameters.getQnameAwareXPathElements().size() > 0 && bSequential
         && node.getParentNode().getChildNodes().getLength() == 1) {
       Node prntNode = node.getParentNode();
       String nodeName = getLocalName(prntNode);
-      String nodePrefix = getNodePrefix(prntNode);
+      String nodeUri = getNamespaceURIByPrefix(prntNode);
       String nodeText = node.getTextContent();
-      NamespaceContextParams ncp = getLastElement(nodePrefix);
       for (QNameAwareParameter en : parameters.getQnameAwareXPathElements()) {
-        if (nodeName.equals(en.getName()) && ncp.getUri().equals(en.getNs())) {
+        if (nodeName.equals(en.getName()) && nodeUri.equals(en.getNs())) {
+
+          // we have
+          // this.currentNamespaces and this.namespaces
+
+
+
+
           NSContext nsContext = xpathesNsMap.get(nodeText);
+
+
+
           List<String> xpathNs = nsContext.getXpathNs();
           StringBuffer sb = new StringBuffer(nodeText.length());
           int baseTextIdx = 0;
@@ -336,7 +497,7 @@ class DOMCanonicalizerHandler {
           }
         }
       }
-    }
+    }*/
 
     outputBuffer.append(text);
   }
@@ -348,7 +509,7 @@ class DOMCanonicalizerHandler {
    *          process instruction node
    */
   protected void processPI(Node node) {
-    LOGGER.debug("processPI: {}", node);
+    /*LOGGER.debug("processPI: {}", node);
     String nodeName = node.getNodeName();
     String nodeValue = node.getNodeValue() != null ? node.getNodeValue() : "";
 
@@ -359,7 +520,7 @@ class DOMCanonicalizerHandler {
         !nodeValue.isEmpty() ? (" " + nodeValue) : ""));
     if (bStart && getNodeDepth(node) == 1) {
       outputBuffer.append("\n");
-    }
+    }*/
 
   }
 
@@ -370,7 +531,7 @@ class DOMCanonicalizerHandler {
    *          comment node
    */
   protected void processComment(Node node) {
-    LOGGER.debug("processComment: {}", node);
+    /*LOGGER.debug("processComment: {}", node);
     if (parameters.isIgnoreComments())
       return;
 
@@ -380,7 +541,7 @@ class DOMCanonicalizerHandler {
     outputBuffer.append(String.format("<!--%s-->", node.getNodeValue()));
     if (bStart && getNodeDepth(node) == 1) {
       outputBuffer.append("\n");
-    }
+    } */
 
   }
 
@@ -418,40 +579,23 @@ class DOMCanonicalizerHandler {
     if (excludeList != null
         && excludeList.contains(node)
         && (node.getNodeType() == Node.ELEMENT_NODE || node instanceof Attr)
-        && !(node instanceof Attr && (NS.equals(getNodePrefix(node)) || XML
+        && !(node instanceof Attr && (XMLNS.equals(getNodePrefix(node)) || XML
             .equals(getNodePrefix(node)))))
       return true;
     return false;
   }
 
-  /**
-   * Returns a depth of a node in the DOM tree.
-   * 
-   * @param node
-   *          DOM node
-   * 
-   * @return Returns a depth
-   */
-  protected int getNodeDepth(Node node) {
-    int i = -1;
-    Node prnt = node;
-    do {
-      i++;
-      prnt = prnt.getParentNode();
-    } while (prnt != null);
-    return i;
-  }
 
   /**
    * Returns whether there is a prefix in the parent output.
-   * 
+   *
    * @param prfx
    *          prefix
-   * 
+   *
    * @return Returns true if a prefix there is in parent output, false -
    *         otherwise
    */
-  private boolean outputNSInParent(String prfx) {
+  /*private boolean outputNSInParent(String prfx) {
     for (Entry<String, List<NamespaceContextParams>> en : namespaces.entrySet()) {
       if (!bSequential && !prfx.equals(en.getKey()))
         continue;
@@ -470,7 +614,7 @@ class DOMCanonicalizerHandler {
       }
     }
     return false;
-  }
+  }*/
 
   /**
    * Remove unused namespaces from the stack.
@@ -479,19 +623,46 @@ class DOMCanonicalizerHandler {
    *          DOM node
    */
   private void removeNamespaces(Node node) {
-	int nDepth = getNodeDepth(node);
+
+    usedPrefixes.deleteLevel(nodeDepth);
+    declaredPrefixes.deleteLevel(nodeDepth);
+
+/*
     for (Iterator<Map.Entry<String, List<NamespaceContextParams>>> it = namespaces.entrySet().iterator(); it.hasNext(); ) {
+
+
       Map.Entry<String, List<NamespaceContextParams>> entry = it.next();
       List<NamespaceContextParams> nsLevels = entry.getValue();
-      while (!nsLevels.isEmpty() &&
-    		 nsLevels.get(nsLevels.size() - 1).getDepth() >= nDepth) {
 
-    	  nsLevels.remove(nsLevels.size() - 1);
+      while (!nsLevels.isEmpty() && nsLevels.get(nsLevels.size() - 1).getDefinitionDepth() >= nDepth) {
+        nsLevels.remove(nsLevels.size() - 1);
       }
+
       if (nsLevels.isEmpty()) {
-    	  it.remove();
+    	  it.remove(); // java.util.ConcurrentModificationException ???
+      } else {
+        NamespaceContextParams theLastElement = getLastListElement(nsLevels);
+        if (theLastElement.getOutputDepth()>=nDepth){
+          theLastElement.setHasOutput(false);
+          theLastElement.setToOutput(false);
+        }
       }
     }
+
+    for (Iterator<Map.Entry<String, List<PrefixContextParams>>> it = currentNamespaces.entrySet().iterator(); it.hasNext(); ) {
+      Map.Entry<String, List<PrefixContextParams>> entry = it.next();
+      List<PrefixContextParams> nsLevels = entry.getValue();
+      while (!nsLevels.isEmpty() &&
+              nsLevels.get(nsLevels.size() - 1).getDepth() >= nDepth) {
+
+        nsLevels.remove(nsLevels.size() - 1);
+      }
+      if (nsLevels.isEmpty()) {
+        it.remove();
+      }
+    }*/
+
+
   }
 
   /**
@@ -502,61 +673,89 @@ class DOMCanonicalizerHandler {
    * 
    * @return Returns a list of output attributes
    */
-  private List<Attribute> processAttributes(final Node node) {
-    List<Attribute> outAttrsList = new ArrayList<Attribute>();
+  private void evaluateUriVisibility(final Node node, SortedSet<NSDeclaration> nsDeclarations) {
 
+    String nodePrf = getNodePrefix(node);
+    String nodeUri = getNamespaceURIByPrefix(nodePrf);
+
+    if (bSequential) {
+      //       firstKey - url
+      //       secondKey - prefix
+      if (usedPrefixes.getByFirstKey(nodeUri) == null) {
+        int nextId = nextIdArray[nodeDepth];
+        String newPrefix = "n" + nextId;
+        nextIdArray[nodeDepth]=nextId + 1;
+        usedPrefixes.definePrefix(nodeUri, newPrefix, nodeDepth);
+        NSDeclaration nsDeclaration = new NSDeclaration();
+        nsDeclaration.setUri(nodeUri);
+        nsDeclaration.setPrefix(newPrefix);
+        nsDeclarations.add(nsDeclaration);
+      }
+    } else {
+      //       firstKey - prefix
+      //       secondKey - url
+      if (usedPrefixes.getByFirstKey(nodePrf) == null) {
+        usedPrefixes.definePrefix(nodePrf, nodeUri, nodeDepth);
+        // xak for xmlns=""
+        if (!(EMPTY_PREFIX.equals(nodePrf) && EMPTY_URI.equals(nodeUri))) {
+          NSDeclaration nsDeclaration = new NSDeclaration();
+          nsDeclaration.setUri(nodeUri);
+          nsDeclaration.setPrefix(nodePrf);
+          nsDeclarations.add(nsDeclaration);
+        }
+      }
+
+    }
     for (int ai = 0; ai < node.getAttributes().getLength(); ai++) {
       Node attr = node.getAttributes().item(ai);
-      if (isInExcludeList(attr))
-        continue;
-
+      if (isInExcludeList(attr)) continue;
       String prfx = getNodePrefix(attr);
-      String localName = getLocalName(attr);
-      if (!NS.equals(prfx)
-          && !(DEFAULT_NS.equals(prfx) && NS.equals(attr.getNodeName()))) {
-        Attribute attribute = new Attribute();
-        attribute.setPrefix(prfx);
-        attribute.setLocalName(localName);
-        attribute.setValue(attr.getNodeValue() != null ? attr.getNodeValue()
-            : "");
-        if (!attribute.getPrefix().isEmpty()
-            && namespaces.containsKey(attribute.getPrefix())) {
-          attribute.setNewPrefix(getLastElement(attribute.getPrefix())
-              .getNewPrefix());
+      if (!XMLNS.equals(prfx)) {
+
+        String attrNamespaceURI;
+        //Note: unlike elements, if an attribute doesn't have a prefix, that means it is a locally scoped attribute.
+        if (EMPTY_PREFIX.equals(prfx)) {
+          attrNamespaceURI = nodeUri;
         } else {
-          attribute.setNewPrefix(attribute.getPrefix());
+          attrNamespaceURI = getNamespaceURIByPrefix(prfx);
         }
 
-        attribute.setValue(processText(attribute.getValue(), true));
-        StringBuffer value = new StringBuffer();
-        for (int i = 0; i < attribute.getValue().length(); i++) {
-          char codepoint = attribute.getValue().charAt(i);
-          if (codepoint == 9 || codepoint == 10 || codepoint == 13) {
-            value.append(String.format(CF, Integer.toHexString(codepoint)
-                .toUpperCase()));
-          } else {
-            value.append(codepoint);
+        if (bSequential) {
+          if (usedPrefixes.getByFirstKey(attrNamespaceURI) == null) {
+            int nextId = nextIdArray[nodeDepth];
+            String newPrefix = "n" + nextId;
+            nextIdArray[nodeDepth]=nextId + 1;
+            usedPrefixes.definePrefix(attrNamespaceURI, newPrefix, nodeDepth);
+            NSDeclaration nsDeclaration = new NSDeclaration();
+            nsDeclaration.setUri(attrNamespaceURI);
+            nsDeclaration.setPrefix(newPrefix);
+            nsDeclarations.add(nsDeclaration);
           }
+        } else {
+          if (usedPrefixes.getByFirstKey(prfx) == null) {
+            usedPrefixes.definePrefix(prfx, attrNamespaceURI, nodeDepth);
+            NSDeclaration nsDeclaration = new NSDeclaration();
+            nsDeclaration.setUri(attrNamespaceURI);
+            nsDeclaration.setPrefix(prfx);
+            nsDeclarations.add(nsDeclaration);
+          }
+
         }
-        attribute.setValue(value.toString());
-
-        outAttrsList.add(attribute);
       }
-    }
 
-    Collections.sort(outAttrsList, new Comparator<Attribute>() {
+/*    Collections.sort(outAttrsList, new Comparator<Attribute>() {
       public int compare(Attribute x, Attribute y) {
         String x_uri, y_uri;
-        if (XML.equals(x.getPrefix())) {
+        if (XML.equals(x.getUri())) {
           x_uri = node.lookupNamespaceURI(XML);
         } else {
-          NamespaceContextParams x_stack = getLastElement(x.getPrefix());
+          NamespaceContextParams x_stack = getLastElement(x.getUri());
           x_uri = x_stack != null ? x_stack.getUri() : "";
         }
-        if (XML.equals(y.getPrefix())) {
+        if (XML.equals(y.getUri())) {
           y_uri = node.lookupNamespaceURI(XML);
         } else {
-          NamespaceContextParams y_stack = getLastElement(y.getPrefix());
+          NamespaceContextParams y_stack = getLastElement(y.getUri());
           y_uri = y_stack != null ? y_stack.getUri() : "";
         }
         return String.format("%s:%s", x_uri, x.getLocalName()).compareTo(
@@ -564,8 +763,62 @@ class DOMCanonicalizerHandler {
       }
     });
 
-    return outAttrsList;
+    return outAttrsList; */
+    }
+
+
+    for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
+      String nodeLocalName = getLocalName(node);
+
+      // 1. If there is an Element subchild, whose Name and NS attributes match E's localname and namespace
+      // respectively, then E is expected to have a single text node child containing a QName.
+      // Extract the prefix from this QName, and consider this prefix as visibly utilized.
+
+      if (nodeLocalName.equals(en.getName())
+              && nodeUri.equals(en.getNs())) {
+        String text = node.getTextContent();
+        int idx = text.indexOf(C);
+
+        String prefix = "";
+        if (idx > -1) {
+          prefix = StringUtils.substring(text, 0, idx);
+        }
+
+        String textUri = getNamespaceURIByPrefix(prefix);
+
+        if (bSequential) {
+          //       firstKey - url
+          //       secondKey - prefix
+          if (usedPrefixes.getByFirstKey(textUri) == null) {
+            int nextId = nextIdArray[nodeDepth];
+            String newPrefix = "n" + nextId;
+            nextIdArray[nodeDepth]=nextId + 1;
+            usedPrefixes.definePrefix(nodeUri, newPrefix, nodeDepth);
+            NSDeclaration nsDeclaration = new NSDeclaration();
+            nsDeclaration.setUri(nodeUri);
+            nsDeclaration.setPrefix(newPrefix);
+            nsDeclarations.add(nsDeclaration);
+          }
+        } else {
+          //       firstKey - prefix
+          //       secondKey - url
+          if (usedPrefixes.getByFirstKey(prefix) == null) {
+            usedPrefixes.definePrefix(prefix, textUri, nodeDepth);
+            NSDeclaration nsDeclaration = new NSDeclaration();
+            nsDeclaration.setUri(textUri);
+            nsDeclaration.setPrefix(prefix);
+            nsDeclarations.add(nsDeclaration);
+          }
+        }
+      }
+
+    }
+
   }
+
+
+
+
 
   /**
    * Prosessing of namespace attributes.
@@ -575,67 +828,38 @@ class DOMCanonicalizerHandler {
    * 
    * @return Returns a list of output namespace attributes
    */
-  private List<NamespaceContextParams> processNamespaces(Node node) {
-    addNamespaces(node);
+ /* private SortedSet<NamespaceContextParams> processNamespaces(Node node) {
 
-    List<NamespaceContextParams> outNSList = new ArrayList<NamespaceContextParams>();
 
-    String nPrefix = getNodePrefix(node);
-
-    String childText = null;
-    if (parameters.getQnameAwareElements().size() > 0 ||
-    	(parameters.getQnameAwareXPathElements().size() > 0 &&
-    	 node.getChildNodes().getLength() == 1)) {
-    	
-        childText = node.getTextContent();
-    }
-    
-    int depth = getNodeDepth(node);
-    for (String prefix : namespaces.keySet()) {
-      NamespaceContextParams ncp = getLastElement(prefix);
-      if (ncp.getDepth() != depth) {
-        NamespaceContextParams entry = ncp.clone();
-        if (entry.isHasOutput() != null && depth > 0)
-          entry.setHasOutput(false);
-        entry.setDepth(depth);
-        namespaces.get(prefix).add(entry);
-        ncp = entry;
-      }
-      if (ncp.isHasOutput() != null && !ncp.isHasOutput()) {
-        if (isPrefixVisible(node, prefix, childText, nPrefix)) {
-          NamespaceContextParams entry = ncp.clone();
-          entry.setPrefix(prefix);
-          outNSList.add(entry);
-        } else
-          continue;
-        ncp.setHasOutput(true);
-      }
-    }
-
+    Comparator<NamespaceContextParams> comparator;
     if (bSequential) {
-      Collections.sort(outNSList, new Comparator<NamespaceContextParams>() {
+      comparator = new Comparator<NamespaceContextParams>() {
         public int compare(NamespaceContextParams x, NamespaceContextParams y) {
           return x.getUri().compareTo(y.getUri());
         }
-      });
-
-      for (NamespaceContextParams entry : outNSList) {
-        NamespaceContextParams ncp = getLastElement(entry.getPrefix());
-        if (!sequentialUriMap.containsKey(entry.getUri()))
-          sequentialUriMap.put(entry.getUri(),
-              String.format("n%s", sequentialUriMap.size()));
-        entry.setNewPrefix(sequentialUriMap.get(entry.getUri()));
-        ncp.setNewPrefix(entry.getNewPrefix());
-      }
+      };
     } else {
-      Collections.sort(outNSList, new Comparator<NamespaceContextParams>() {
+      comparator = new Comparator<NamespaceContextParams>() {
         public int compare(NamespaceContextParams x, NamespaceContextParams y) {
           return x.getPrefix().compareTo(y.getPrefix());
         }
-      });
+      };
     }
+
+    SortedSet<NamespaceContextParams> outNSList = new TreeSet<NamespaceContextParams>(comparator);
+
+    NamespaceContextParams namespaceContextParams = getLastElement(getNodePrefix(node));
+    outNSList.add(namespaceContextParams);
+
+    for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
+      Node attr = node.getAttributes().item(ni);
+      if (isInExcludeList(attr))
+        continue;
+      outNSList.add(getLastElement(getNodePrefix(node))); // set !!
+    }
+
     return outNSList;
-  }
+  }*/
 
   /**
    * Add namespaces to stack.
@@ -644,38 +868,73 @@ class DOMCanonicalizerHandler {
    *          DOM node
    */
   private void addNamespaces(Node node) {
+
     for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
       Node attr = node.getAttributes().item(ni);
       if (isInExcludeList(attr))
         continue;
-      String prefix = getLocalName(attr);
-
+      String suffix = getLocalName(attr);
       String prfxNs = getNodePrefix(attr);
 
-      if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
-        if (NS.equals(prefix)) {
-          prefix = "";
-        }
-
+      if (XMLNS.equals(prfxNs) ) {
         String uri = attr.getNodeValue();
-
-        List<NamespaceContextParams> stack = namespaces.get(prefix);
-        if (stack != null && uri.equals(getLastElement(prefix).getUri()))
-          continue;
-
-        if (!namespaces.containsKey((prefix))) {
-          namespaces.put(prefix, new ArrayList<NamespaceContextParams>());
-        }
-        NamespaceContextParams nsp = new NamespaceContextParams(uri, false,
-            prefix, getNodeDepth(node));
-        if (namespaces.get(prefix).size() == 0
-            || getNodeDepth(node) != getLastElement(prefix).getDepth())
-          namespaces.get(prefix).add(nsp);
-        else
-          namespaces.get(prefix).set(namespaces.get(prefix).size() - 1, nsp);
+        declaredPrefixes.definePrefix(suffix,uri,nodeDepth);
       }
     }
+
   }
+/*
+
+  private void addQNameAwareNamespaces(Node node) {
+    for (QNameAwareParameter en : parameters.getQnameAwareElements()) {
+      String nodeLocalName = getLocalName(node);
+      String nodeUri = getNamespaceURIByPrefix(node);
+
+      // 1. If there is an Element subchild, whose Name and NS attributes match E's localname and namespace
+      // respectively, then E is expected to have a single text node child containing a QName.
+      // Extract the prefix from this QName, and consider this prefix as visibly utilized.
+
+      if (nodeLocalName.equals(en.getName())
+              && nodeUri.equals(en.getNs())) {
+        String text = node.getTextContent();
+        int idx = text.indexOf(C);
+
+        String prefix = "";
+        if (idx > -1) {
+          prefix = StringUtils.substring(text, 0, idx);
+        }
+
+
+
+        // we have to know the prefix at this moment !!
+        List<PrefixContextParams> currentStack =currentNamespaces.get(prefix);
+        String textUri = getLastCurrentListElement(currentStack).getUri();
+
+        if (!namespaces.containsKey(textUri)) {
+          Map<String,NamespaceContextParams> nMap = new HashMap<String,NamespaceContextParams>();
+          NamespaceContextParams namespaceContextParams = new NamespaceContextParams();
+          namespaceContextParams.setToOutput(true);
+          namespaceContextParams.setPrefix(prefix);
+          namespaceContextParams.setDefinitionDepth(getNodeDepth(node));
+          nMap.put(prefix,namespaceContextParams);
+          namespaces.put(textUri,nMap);
+        } else {
+          if (!bSequential) {
+            Map<String,NamespaceContextParams> nMap = namespaces.get(textUri);
+            if (!nMap.containsKey(prefix)) {
+              NamespaceContextParams namespaceContextParams = new NamespaceContextParams();
+              namespaceContextParams.setToOutput(true);
+              namespaceContextParams.setPrefix(prefix);
+              namespaceContextParams.setDefinitionDepth(getNodeDepth(node));
+              nMap.put(prefix,namespaceContextParams);
+            }
+          }
+        }
+      }
+
+    }
+
+  }*/
 
   /**
    * Returns whether to show the prefix in the output of the node.
@@ -688,7 +947,7 @@ class DOMCanonicalizerHandler {
    * @return Returns true if prefix is shown in the output of the node, false -
    *         otherwise.
    */
-  private boolean isPrefixVisible(Node node, String prefix, String childText, String nPrefix) {
+ /* private boolean isPrefixVisible(Node node, String prefix, String childText, String nPrefix) {
 
     if (nPrefix.equals(prefix)) {
       return true;
@@ -765,7 +1024,7 @@ class DOMCanonicalizerHandler {
     }
 
     return false;
-  }
+  }*/
 
   /**
    * Replace special characters.
@@ -806,38 +1065,51 @@ class DOMCanonicalizerHandler {
     int idx = name.indexOf(C);
     if (idx > -1)
       return name.substring(idx + 1);
+    if (XMLNS.equals(name)) {
+      return ""; // to simplify code
+    }
     return name;
   }
 
   /**
    * Returns parameter by key.
    * 
-   * @param key
-   *          key
    * @return parameter
    */
-  private NamespaceContextParams getLastElement(String key) {
+/*  private NamespaceContextParams getLastElement(String key) {
     return getLastElement(key, -1);
+  }
+*/
+
+  private NamespaceContextParams getLastListElement(List<NamespaceContextParams> nList) {
+    if (nList!=null && nList.size()>0) {
+      return nList.get(nList.size()-1);
+    }
+    return null;
+  }
+
+  private PrefixContextParams getLastCurrentListElement(List<PrefixContextParams> nList) {
+    if (nList!=null && nList.size()>0) {
+      return nList.get(nList.size()-1);
+    }
+    return null;
   }
 
   /**
    * Returns parameter by key.
    * 
-   * @param key
-   *          key
+   * @param uri uri
    * @param shift
    *          shift
    * @return parameter
    */
-  private NamespaceContextParams getLastElement(String key, int shift) {
-    List<NamespaceContextParams> lst = namespaces.get(key);
+  /*private NamespaceContextParams getLastElement(String uri, int shift) {
+    List<NamespaceContextParams> lst = namespaces.get(uri);
     if (lst!=null)
       return lst.size() + shift > -1 ? lst.get(lst.size() + shift) : null;
-    else {
-      return parentNamespaces.get(key);
-    }
+    return null;
   }
-
+*/
   /**
    * Returns the node prefix.
    * 
@@ -850,6 +1122,9 @@ class DOMCanonicalizerHandler {
     if (prfx == null || prfx.isEmpty()) {
       prfx = "";
       String name = node.getNodeName();
+      if (XMLNS.equals(name)) {
+        return name; // to simplify code
+      }
       int idx = name.indexOf(C);
       if (idx > -1)
         return StringUtils.substring(name,0, idx);
@@ -865,43 +1140,26 @@ class DOMCanonicalizerHandler {
    * Load all namespace definitions for canonicalized element before canonicalization process start.
    */
 
-  protected void appendNamespaceDefinitionsBeforeCanonicalization(Node node) {
+  protected void loadParentNamespaces(Node node) {
     Node current = node;
-
     // processing up to root
+
+    int depth = 0;
     while((current=current.getParentNode())!=null && (current.getNodeType()!=Node.DOCUMENT_NODE)) {
-      loadParentsNamespaces(current);
-    }
+      depth --;
+      for (int ni = 0; ni < current.getAttributes().getLength(); ni++) {
+        Node attr = current.getAttributes().item(ni);
+        String suffix = getLocalName(attr);
+        String prfxNs = getNodePrefix(attr);
 
-  }
-
-  private void loadParentsNamespaces(Node node) {
-
-    for (int ni = 0; ni < node.getAttributes().getLength(); ni++) {
-      Node attr = node.getAttributes().item(ni);
-      if (isInExcludeList(attr))
-        continue;
-      String prefix = getLocalName(attr);
-
-      String prfxNs = getNodePrefix(attr);
-
-      if (NS.equals(prfxNs) || (DEFAULT_NS.equals(prfxNs) && NS.equals(prefix))) {
-        if (NS.equals(prefix)) {
-          prefix = "";
+        if (XMLNS.equals(prfxNs)) {
+          String uri = attr.getNodeValue();
+          this.declaredPrefixes.definePrefix(suffix,uri,depth);
         }
-
-        String uri = attr.getNodeValue();
-
-        NamespaceContextParams namespaceContextParams = parentNamespaces.get(prefix);
-        if (namespaceContextParams != null)
-          continue;
-
-        namespaceContextParams = new NamespaceContextParams(uri, false,
-                prefix, - getNodeDepth(node));
-        parentNamespaces.put(prefix,namespaceContextParams);
-
       }
     }
+
   }
+
 
 }

@@ -2,6 +2,7 @@ package ru.relex.c14n2;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +20,7 @@ import org.w3c.dom.NodeList;
 
 public class CanonicalizerTest {
 
-  @Test(threadPoolSize = 10, invocationCount = 1000, invocationTimeOut = 0)
+ /* @Test(threadPoolSize = 10, invocationCount = 1000, invocationTimeOut = 0)
   public void testMultiThread() {
     testN1Default();
     testN1Comment();
@@ -293,13 +294,15 @@ public class CanonicalizerTest {
           }
         }));
   }
-
+*/ /*
   @Test
   public void testNsContent1PrefixQnameXPathElem() {
     Assert.assertTrue(processTest("8r", "inNsContent_1",
         "c14nPrefixQnameXpathElem"));
   }
 
+*/
+/*
   @Test
   public void testN22TrimExcl2() {
     Assert.assertTrue(processTest("9r", "inC14N2_2", "c14nTrim",
@@ -322,9 +325,10 @@ public class CanonicalizerTest {
             return nodes;
           }
         }));
-  }
+  } */
 
-  @Test
+/* OK */
+ /*@Test
   public void testWsseDefault() {
     Assert.assertTrue(processTest("10r", "inWsse", "c14nDefault"));
   }
@@ -337,30 +341,36 @@ public class CanonicalizerTest {
   @Test
   public void testN3PrefixIncl1() {
     Assert.assertTrue(processTest("12r", "inC14N3", "c14nPrefix",
-        new ICanonicalizerExcludeList() {
+            new ICanonicalizerExcludeList() {
 
-          @Override
-          public String getExcludeListName() {
-            return "incl1";
-          }
+              @Override
+              public String getExcludeListName() {
+                return "incl1";
+              }
 
-          @Override
-          public List<Node> getIncludeList(Document doc) {
-            List<Node> nodes = new ArrayList<Node>();
-            NodeList nl = doc.getChildNodes().item(1).getChildNodes();
-            // e3
-            nodes.add(nl.item(5));
-            // e7
-            nodes.add(nl.item(11).getChildNodes().item(1));
-            return nodes;
-          }
-        }));
+              @Override
+              public List<Node> getIncludeList(Document doc) {
+                List<Node> nodes = new ArrayList<Node>();
+                NodeList nl = doc.getChildNodes().item(1).getChildNodes();
+                // e3
+                nodes.add(nl.item(5));
+                // e7
+                nodes.add(nl.item(11).getChildNodes().item(1));
+                return nodes;
+              }
+            }));
+  }
+
+  @Test
+  public void testNsDefault1Prefix() {
+    Assert.assertTrue(processTest("14r", "inNsDefault_1", "c14nPrefix"));
   }
 
   @Test
   public void testFlyXmlDefault() {
     try {
       DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+
       DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
       Document doc = dBuilder.newDocument();
 
@@ -395,12 +405,7 @@ public class CanonicalizerTest {
       e.printStackTrace();
       Assert.assertFalse(false);
     }
-  }
-
-  @Test
-  public void testNsDefault1Prefix() {
-    Assert.assertTrue(processTest("14r", "inNsDefault_1", "c14nPrefix"));
-  }
+  }*/
 
   private static boolean processTest(String testNumber, String inFileName,
       String paramName) {
@@ -479,8 +484,18 @@ public class CanonicalizerTest {
     }
     if (!b) {
       System.out.println("---Result---\n" + result
-          + "\n---Base---\n" + baos.toString("UTF-8") + "---time---\n" + l / 1000.0
+          + "\n---Base---\n" + baos.toString("UTF-8") + "\n---time---\n" + l / 1000.0
           + "\n------");
+
+      FileOutputStream res = new FileOutputStream("./result");
+      res.write(result.getBytes());
+      res.close();
+
+      FileOutputStream base = new FileOutputStream("./base");
+      base.write(baos.toByteArray());
+      base.close();
+
+
     } else {
       System.out.println("Test " + testNumber + " (" + l / 1000.0
           + " sec) – ok");

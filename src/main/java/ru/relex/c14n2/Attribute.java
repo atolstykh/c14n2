@@ -4,37 +4,30 @@ package ru.relex.c14n2;
  * The internal representation of the attribute.
  */
 class Attribute {
-  private String prefix;
-  private String newPrefix;
+  private String uri;
   private String localName;
   private String value;
+  private boolean attributeQualified=true;
+
+  public String getOldPrefix() {
+    return oldPrefix;
+  }
+
+  private String oldPrefix;
 
   /**
-   * Returns the prefix of the qualified name of this attribute.
+   * Returns the uri of the qualified name of this attribute.
    * 
-   * @return Returns the prefix
+   * @return Returns the uri
    */
-  public String getPrefix() {
-    return prefix;
+  public String getUri() {
+    return uri;
   }
 
-  public void setPrefix(String prefix) {
-    this.prefix = prefix;
+  public void setUri(String uri) {
+    this.uri = uri;
   }
 
-  /**
-   * Returns the new prefix (in "Prefix rewrite" mode) of the qualified name of
-   * this attribute.
-   * 
-   * @return Returns the prefix
-   */
-  public String getNewPrefix() {
-    return newPrefix;
-  }
-
-  public void setNewPrefix(String newPrefix) {
-    this.newPrefix = newPrefix;
-  }
 
   /**
    * Returns the local part of the qualified name of this attribute.
@@ -60,5 +53,17 @@ class Attribute {
 
   public void setValue(String value) {
     this.value = value;
+  }
+
+  public void setAttributeQualified(boolean attributeQualified) {
+    this.attributeQualified = attributeQualified;
+  }
+
+  public boolean isAttributeQualified() {
+    return attributeQualified;
+  }
+
+  public void setOldPrefix(String oldPrefix) {
+    this.oldPrefix = oldPrefix;
   }
 }
