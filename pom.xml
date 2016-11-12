@@ -1,16 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>ru.pvdnp</groupId>
-    <artifactId>security</artifactId>
-    <version>pvdnp-4.0.0-SNAPSHOT</version>
-    <relativePath>..</relativePath>
-  </parent>  
+
   <groupId>ru.relex</groupId>
   <artifactId>c14n2</artifactId>
   <packaging>jar</packaging>
-
+  <version>4.0.0</version>
   <name>c14n2</name>
   <url>http://maven.apache.org</url>
 
@@ -18,12 +13,13 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
-    <maven-surefire-plugin.version>2.5</maven-surefire-plugin.version>    
+    <maven-surefire-plugin.version>2.5</maven-surefire-plugin.version>
     <org-uncommons-reporing.version>1.1.2</org-uncommons-reporing.version>
     <guice.version>3.0</guice.version>
     <testng.version>6.2.1</testng.version>
-    <slf4j.version>1.6.4</slf4j.version>
+    <slf4j.version>1.7.6</slf4j.version>
     <xalan.version>2.7.1</xalan.version>
+    <commons-lang3.version>3.5</commons-lang3.version>
    </properties>
   <build>
     <plugins>
@@ -69,6 +65,12 @@
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${commons-lang3.version}</version>
+   </dependency>
+
      <!--ReportNG -->
     <dependency>
       <groupId>org.uncommons</groupId>
