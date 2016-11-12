@@ -15,87 +15,87 @@ import java.util.List;
 
 public class CanonicalizerTest {
 
-  @Test(threadPoolSize = 10, invocationCount = 1000, invocationTimeOut = 0)
-  public void testMultiThread() {
+    @Test(threadPoolSize = 10, invocationCount = 1000, invocationTimeOut = 0)
+    public void testMultiThread() {
 /* not implemented    testN1Default();
     testN1Comment(); */
-    testN2Default();
-    testN2Trim();
-    testN3Default();
-  //  testN3Prefix();
-    testN3Trim();
-    testN4Default();
-    testN4Trim();
-    testN5Default();
-    testN5Trim();
-    testN6Default();
-    testNsPushdownDefault();
-    testNsPushdownPrefix();
-    testNsDefaultDefault();
-  //  testNsDefaultPrefix();
-    testNsSortDefault();
-    testNsSortPrefix();
-    testNsRedeclDefault();
-    testNsRedeclPrefix();
-    testNsSuperfluousDefault();
-    testNsSuperfluousPrefix();
-    testNsXmlDefault();
-    testNsXmlPrefix();
-    testNsXmlQname();
-    testNsXmlPrefixQname();
-    testNsContentDefault();
-    testNsContentQnameElem();
-    testNsContentQnameXpathElem();
-//    testNsContentPrefixQnameXPathElem();
-  }
+        testN2Default();
+        testN2Trim();
+        testN3Default();
+        testN3Prefix();
+        testN3Trim();
+        testN4Default();
+        testN4Trim();
+        testN5Default();
+        testN5Trim();
+        testN6Default();
+        testNsPushdownDefault();
+        testNsPushdownPrefix();
+        testNsDefaultDefault();
+        testNsDefaultPrefix();
+        testNsSortDefault();
+        testNsSortPrefix();
+        testNsRedeclDefault();
+        testNsRedeclPrefix();
+        testNsSuperfluousDefault();
+        testNsSuperfluousPrefix();
+        testNsXmlDefault();
+        testNsXmlPrefix();
+        testNsXmlQname();
+        testNsXmlPrefixQname();
+        testNsContentDefault();
+        testNsContentQnameElem();
+        testNsContentQnameXpathElem();
+        testNsContentPrefixQnameXPathElem();
+    }
 
     //  comment and pi not implemented yet
 // @Test
 //  public void testN1Default() {
 //    Assert.assertTrue(processTest("1", "inC14N1", "c14nDefault"));
- // }
+    // }
 
 
     //  comment and pi not implemented yet
 //  @Test
 //  public void testN1Comment() {
- //   Assert.assertTrue(processTest("2", "inC14N1", "c14nComment"));
- // }
+    //   Assert.assertTrue(processTest("2", "inC14N1", "c14nComment"));
+    // }
 //
 
 
-  @Test
-  public void testN2Default() {
-    Assert.assertTrue(processTest("3", "inC14N2", "c14nDefault"));
-  }
+    @Test
+    public void testN2Default() {
+        Assert.assertTrue(processTest("3", "inC14N2", "c14nDefault"));
+    }
 
-  @Test
-  public void testN2Trim() {
-    Assert.assertTrue(processTest("4", "inC14N2", "c14nTrim"));
-  }
+    @Test
+    public void testN2Trim() {
+        Assert.assertTrue(processTest("4", "inC14N2", "c14nTrim"));
+    }
 
-  @Test
-  public void testN21Default() {
-    Assert.assertTrue(processTest("1r", "inC14N2_1", "c14nDefault"));
-  }
+    @Test
+    public void testN21Default() {
+        Assert.assertTrue(processTest("1r", "inC14N2_1", "c14nDefault"));
+    }
 
-  @Test
-  public void testN21Trim() {
-    Assert.assertTrue(processTest("2r", "inC14N2_1", "c14nTrim"));
-  }
+    @Test
+    public void testN21Trim() {
+        Assert.assertTrue(processTest("2r", "inC14N2_1", "c14nTrim"));
+    }
 
-  @Test
-  public void testN3Default() {
-    Assert.assertTrue(processTest("5", "inC14N3", "c14nDefault"));
-  }
+    @Test
+    public void testN3Default() {
+        Assert.assertTrue(processTest("5", "inC14N3", "c14nDefault"));
+    }
 
     //
     // work with PVDNP_MODE=false
     //
-    // @Test
-    // public void testN3Prefix() {
-    //   Assert.assertTrue(processTest("6", "inC14N3", "c14nPrefix"));
-    // }
+    @Test
+    public void testN3Prefix() {
+        Assert.assertTrue(processTest("6", "inC14N3", "c14nPrefix"));
+    }
 
     @Test
     public void testN3Trim() {
@@ -144,11 +144,10 @@ public class CanonicalizerTest {
         Assert.assertTrue(processTest("15", "inNsDefault", "c14nDefault"));
     }
 
-    // PVDNP_MODE=false
-    // @Test
-    // public void testNsDefaultPrefix() {
-    // Assert.assertTrue(processTest("16", "inNsDefault", "c14nPrefix"));
-    //}
+    @Test
+    public void testNsDefaultPrefix() {
+        Assert.assertTrue(processTest("16", "inNsDefault", "c14nPrefix"));
+    }
 
 
     @Test
@@ -219,14 +218,11 @@ public class CanonicalizerTest {
     }
 
 
-    //
-    // work with PVDNP_MODE=false
-    //
-    //@Test
-    //public void testNsContentPrefixQnameXPathElem() {
-    //    Assert.assertTrue(processTest("30", "inNsContent",
-    //            "c14nPrefixQnameXpathElem"));
-   // }
+    @Test
+    public void testNsContentPrefixQnameXPathElem() {
+        Assert.assertTrue(processTest("30", "inNsContent",
+                "c14nPrefixQnameXpathElem"));
+    }
 
     @Test
     public void testRC242Default() {
@@ -264,14 +260,11 @@ public class CanonicalizerTest {
         Assert.assertTrue(processTest("7r", "inC14N3", "c14nDefault"));
     }
 
-    //
-    // work with PVDNP_MODE=false
-    //
-    //@Test
-    //public void testNsContent1PrefixQnameXPathElem() {
-    //  Assert.assertTrue(processTest("8r", "inNsContent_1",
-    //      "c14nPrefixQnameXpathElem"));
-    //}
+    @Test
+    public void testNsContent1PrefixQnameXPathElem() {
+        Assert.assertTrue(processTest("8r", "inNsContent_1",
+                "c14nPrefixQnameXpathElem"));
+    }
 
 
     @Test
@@ -303,9 +296,6 @@ public class CanonicalizerTest {
         Assert.assertTrue(processTest("10r", "inWsse", "c14nDefault"));
     }
 
-    //
-    //  work with PVDNP_MODE=true
-    //
     @Test
     public void testWssePrefix() {
         Assert.assertTrue(processTest("11r", "inWsse", "c14nPrefix"));

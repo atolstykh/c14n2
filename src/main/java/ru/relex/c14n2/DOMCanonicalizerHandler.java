@@ -39,9 +39,6 @@ class DOMCanonicalizerHandler {
     private static final boolean PVDNP_MODE = true;
     private int nodeDepth = 0;
 
-    private int[] nextIdArray;
-
-
     //
     //       firstKey - prefix
     //       secondKey - url
@@ -94,11 +91,6 @@ class DOMCanonicalizerHandler {
         this.redefinedPrefixesMap = new HashMap<String, String>();
         bSequential = parameters.getPrefixRewrite().equals(Parameters.SEQUENTIAL);
 
-
-        if (bSequential) {
-            nextIdArray = new int[ID_ARRAY_CAPACITY]; // check
-            nextIdArray[0] = 0;
-        }
 
         loadParentNamespaces(node);
 
@@ -171,15 +163,6 @@ class DOMCanonicalizerHandler {
         if (isInExcludeList(node))
             return;
         nodeDepth++;
-        if (bSequential) {
-            if (nextIdArray.length == nodeDepth) {
-                int[] newArr = new int[nextIdArray.length + ID_ARRAY_CAPACITY];
-                System.arraycopy(nextIdArray, 0, newArr, 0, nextIdArray.length);
-                nextIdArray = newArr;
-            }
-            nextIdArray[nodeDepth] = nextIdArray[nodeDepth - 1];
-
-        }
         addNamespaces(node);
 
         Set<NSDeclaration> nsDeclarations = new HashSet<NSDeclaration>();
