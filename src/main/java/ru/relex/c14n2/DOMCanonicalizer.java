@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import ru.relex.c14n2.util.Parameters;
 
 /**
  * C14N2 canonicalization.

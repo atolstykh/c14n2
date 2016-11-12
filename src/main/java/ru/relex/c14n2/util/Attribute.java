@@ -1,13 +1,14 @@
-package ru.relex.c14n2;
+package ru.relex.c14n2.util;
 
 /**
  * The internal representation of the attribute.
  */
-class Attribute {
+public class Attribute {
   private String uri;
   private String localName;
   private String value;
   private boolean attributeQualified=true;
+  private String attrPrfx;
 
   public String getOldPrefix() {
     return oldPrefix;
@@ -65,5 +66,13 @@ class Attribute {
 
   public void setOldPrefix(String oldPrefix) {
     this.oldPrefix = oldPrefix;
+  }
+
+  public String getAttrPrfx() {
+    return attrPrfx;
+  }
+
+  public void setAttrPrfx(String attrPrfx) {
+    this.attrPrfx = attrPrfx;
   }
 }
