@@ -946,9 +946,14 @@ class DOMCanonicalizerHandler {
      * @return Returns local name
      */
     private String getLocalName(Node node) {
-        if (node.getLocalName() != null)
+        String name = node.getLocalName();
+        if (node.getLocalName() != null) {
+            if (XMLNS.equals(name)) {
+                return ""; // to simplify code
+            }
             return node.getLocalName();
-        String name = node.getNodeName();
+        }
+        name = node.getNodeName();
         int idx = name.indexOf(C);
         if (idx > -1)
             return name.substring(idx + 1);
@@ -1002,6 +1007,7 @@ class DOMCanonicalizerHandler {
                     String uri = attr.getNodeValue();
                     this.declaredPrefixes.definePrefix(suffix, uri, depth);
                 }
+
             }
         }
 
