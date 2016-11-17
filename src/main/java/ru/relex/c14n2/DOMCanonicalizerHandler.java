@@ -946,20 +946,13 @@ class DOMCanonicalizerHandler {
      * @return Returns local name
      */
     private String getLocalName(Node node) {
-        String name = node.getLocalName();
-        if (node.getLocalName() != null) {
-            if (XMLNS.equals(name)) {
-                return ""; // to simplify code
-            }
-            return node.getLocalName();
-        }
-        name = node.getNodeName();
-        int idx = name.indexOf(C);
-        if (idx > -1)
-            return name.substring(idx + 1);
+        String name = node.getLocalName()!=null?node.getLocalName():node.getNodeName();
         if (XMLNS.equals(name)) {
             return ""; // to simplify code
         }
+        int idx = name.indexOf(C);
+        if (idx > -1)
+            return name.substring(idx + 1);
         return name;
     }
 
@@ -995,23 +988,33 @@ class DOMCanonicalizerHandler {
         Node current = node;
         // processing up to root
 
-        int depth = 0;
+
+        List<Node> parentNodeList = new LinkedList<Node>();
         while ((current = current.getParentNode()) != null && (current.getNodeType() != Node.DOCUMENT_NODE)) {
-            depth--;
-            for (int ni = 0; ni < current.getAttributes().getLength(); ni++) {
-                Node attr = current.getAttributes().item(ni);
+            // revert list
+            parentNodeList.add(current);
+        }
+
+        int depth = 0;
+        for (int i = parentNodeList.size()-1;i>=0;i--) {
+            depth++;
+            Node pnode = parentNodeList.get(i);
+            for (int ni = 0; ni < pnode.getAttributes().getLength(); ni++) {
+                Node attr = pnode.getAttributes().item(ni);
                 String suffix = getLocalName(attr);
                 String prfxNs = getNodePrefix(attr);
 
                 if (XMLNS.equals(prfxNs)) {
                     String uri = attr.getNodeValue();
-                    this.declaredPrefixes.definePrefix(suffix, uri, depth);
+                    this.declaredPrefixes.definePrefix(suffix, uri, -depth);
                 }
 
             }
+
         }
 
     }
+
 
 
 }
