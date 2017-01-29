@@ -1,15 +1,10 @@
 package ru.relex.c14n2;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
-import javax.xml.crypto.dsig.TransformException;
-
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import ru.relex.c14n2.util.Parameters;
 
 /**
  * C14N2 canonicalization.
@@ -24,7 +19,7 @@ public class DOMCanonicalizer {
   /**
    * Constructor.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param includeList
    *          inclusion list
@@ -36,7 +31,7 @@ public class DOMCanonicalizer {
    * @throws Exception
    */
   private DOMCanonicalizer(Node node, List<Node> includeList,
-      List<Node> excludeList, Parameters params) throws TransformException {
+      List<Node> excludeList, Parameters params) throws Exception {
     if (node == null) {
       throw new NullPointerException();
     }
@@ -44,16 +39,16 @@ public class DOMCanonicalizer {
     this.includeList = includeList != null && includeList.isEmpty() ? null
         : includeList;
     this.node = node;
-    StringBuffer sb = new StringBuffer();
-    canonicalizer = new DOMCanonicalizerHandler(
+    StringBuilder sb = new StringBuilder();
+    canonicalizer = new DOMCanonicalizerHandler(node,
         params == null ? new Parameters() : params, excludeList != null
             && excludeList.isEmpty() ? null : excludeList, sb);
   }
-  
+
   /**
-   * Canonicalization method.
+   * Constructor.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param params
    *          canonicalization parameters
@@ -61,14 +56,14 @@ public class DOMCanonicalizer {
    * @throws Exception
    */
   public static String canonicalize(Node node, Parameters params)
-      throws TransformException {
+      throws Exception {
     return canonicalize(node, null, null, params);
   }
 
   /**
-   * Canonicalization method.
+   * Constructor.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param includeList
    *          inclusion list
@@ -85,7 +80,7 @@ public class DOMCanonicalizer {
   /**
    * Canonicalization method.
    * 
-   * @param doc
+   * @param node
    *          DOM document
    * @param includeList
    *          inclusion list
@@ -99,11 +94,11 @@ public class DOMCanonicalizer {
    * @throws Exception
    */
   public static String canonicalize(Node node, List<Node> includeList,
-      List<Node> excludeList, Parameters params) throws TransformException {
+      List<Node> excludeList, Parameters params) throws Exception {
     return new DOMCanonicalizer(node, includeList, excludeList, params)
         .canonicalizeSubTree();
   }
-  
+
   /**
    * Canonicalizing of subtree.
    * 
@@ -111,7 +106,7 @@ public class DOMCanonicalizer {
    * 
    * @throws Exception
    */
-  private String canonicalizeSubTree() throws TransformException {
+  private String canonicalizeSubTree() throws Exception {
     if (includeList == null) {
       process(node);
     } else {
@@ -140,8 +135,8 @@ public class DOMCanonicalizer {
     Collections.sort(allNodes, new Comparator<Node>() {
       @Override
       public int compare(Node n1, Node n2) {
-        int l1 = canonicalizer.getNodeDepth(n1);
-        int l2 = canonicalizer.getNodeDepth(n2);
+        int l1 = getNodeDepth(n1);
+        int l2 = getNodeDepth(n2);
         if (l1 != l2) {
           return l1 - l2;
         } else {
@@ -176,6 +171,17 @@ public class DOMCanonicalizer {
     nodes = allNodes;
   }
 
+  protected int getNodeDepth(Node node) {
+    int i = -1;
+    Node prnt = node;
+    do {
+      i++;
+      prnt = prnt.getParentNode();
+    } while (prnt != null);
+    return i;
+  }
+
+
   /**
    * Processing a node.
    * 
@@ -185,7 +191,6 @@ public class DOMCanonicalizer {
   private void process(Node node) {
     if (canonicalizer.isInExcludeList(node))
       return;
-
     switch (node.getNodeType()) {
     case Node.ELEMENT_NODE:
       canonicalizer.processElement(node);

@@ -1,4 +1,4 @@
-package ru.relex.c14n2;
+package ru.relex.c14n2.util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,9 +13,11 @@ public class Parameters {
   private boolean ignoreComments = true;
   private boolean trimTextNodes = false;
   private String prefixRewrite = NONE;
-  private List<QNameAwareParameter> QnameAwareAttributes = new ArrayList<QNameAwareParameter>();
-  private List<QNameAwareParameter> QnameAwareElements = new ArrayList<QNameAwareParameter>();
-  private List<QNameAwareParameter> QnameAwareXPathElements = new ArrayList<QNameAwareParameter>();
+  private List<QNameAwareParameter> qnameAwareQualifiedAttributes = new ArrayList<QNameAwareParameter>();
+  private List<QNameAwareParameter> qnameAwareUnqualifiedAttributes = new ArrayList<QNameAwareParameter>();
+  private List<QNameAwareParameter> qnameAwareElements = new ArrayList<QNameAwareParameter>();
+  private List<QNameAwareParameter> qnameAwareXPathElements = new ArrayList<QNameAwareParameter>();
+
 
   /**
    * Returns whether to ignore comments during canonicalization.
@@ -59,50 +61,35 @@ public class Parameters {
     this.prefixRewrite = prefixRewrite;
   }
 
-  /**
-   * Returns a list of parameters which defines the qualified attribute names
-   * and unqualified attribute names whose entire content must be processed as
-   * QName-valued for the purposes of canonicalization.
-   * 
-   * @return Returns a list
-   */
-  public List<QNameAwareParameter> getQnameAwareAttributes() {
-    return QnameAwareAttributes;
+  public List<QNameAwareParameter> getQnameAwareQualifiedAttributes() {
+    return qnameAwareQualifiedAttributes;
   }
 
-  public void setQnameAwareAttributes(
-      List<QNameAwareParameter> qnameAwareAttributes) {
-    QnameAwareAttributes = qnameAwareAttributes;
+  public void setQnameAwareQualifiedAttributes(List<QNameAwareParameter> qnameAwareQualifiedAttributes) {
+    this.qnameAwareQualifiedAttributes = qnameAwareQualifiedAttributes;
   }
 
-  /**
-   * Returns a list of parameters which defines the qualified element names
-   * whose entire content must be processed as QName-valued for the purposes of
-   * canonicalization.
-   * 
-   * @return Returns a list
-   */
+  public List<QNameAwareParameter> getQnameAwareUnqualifiedAttributes() {
+    return qnameAwareUnqualifiedAttributes;
+  }
+
+  public void setQnameAwareUnqualifiedAttributes(List<QNameAwareParameter> qnameAwareUnqualifiedAttributes) {
+    this.qnameAwareUnqualifiedAttributes = qnameAwareUnqualifiedAttributes;
+  }
+
   public List<QNameAwareParameter> getQnameAwareElements() {
-    return QnameAwareElements;
+    return qnameAwareElements;
   }
 
   public void setQnameAwareElements(List<QNameAwareParameter> qnameAwareElements) {
-    QnameAwareElements = qnameAwareElements;
+    this.qnameAwareElements = qnameAwareElements;
   }
 
-  /**
-   * Returns a list of parameters which defines the element names that contain
-   * XPath 1.0 expressions whose entire content must be processed as
-   * QName-valued for the purposes of canonicalization.
-   * 
-   * @return Returns a list
-   */
   public List<QNameAwareParameter> getQnameAwareXPathElements() {
-    return QnameAwareXPathElements;
+    return qnameAwareXPathElements;
   }
 
-  public void setQnameAwareXPathElements(
-      List<QNameAwareParameter> qnameAwareXPathElements) {
-    QnameAwareXPathElements = qnameAwareXPathElements;
+  public void setQnameAwareXPathElements(List<QNameAwareParameter> qnameAwareXPathElements) {
+    this.qnameAwareXPathElements = qnameAwareXPathElements;
   }
 }

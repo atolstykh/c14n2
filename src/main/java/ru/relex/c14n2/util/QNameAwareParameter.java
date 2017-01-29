@@ -1,4 +1,4 @@
-package ru.relex.c14n2;
+package ru.relex.c14n2.util;
 
 /**
  * The internal representation of qualified element names, element names that
@@ -8,6 +8,7 @@ package ru.relex.c14n2;
 public class QNameAwareParameter {
   private String name;
   private String ns;
+  private String parentName;
 
   /**
    * Constructor.
@@ -20,6 +21,13 @@ public class QNameAwareParameter {
   public QNameAwareParameter(String name, String ns) {
     this.name = name;
     this.ns = ns;
+  }
+
+
+  public QNameAwareParameter(String parentName, String parentNs, String name) {
+    this.parentName=parentName;
+    this.ns = parentNs;
+    this.name = name;
   }
 
   /**
@@ -46,5 +54,13 @@ public class QNameAwareParameter {
 
   public void setNs(String ns) {
     this.ns = ns;
+  }
+
+  public String getParentName() {
+    return parentName;
+  }
+
+  public void setParentName(String parentName) {
+    this.parentName = parentName;
   }
 }
