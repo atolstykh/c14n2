@@ -1,7 +1,7 @@
 # Old temorary source copies
 *.orig
 *~
-
+build
 classes
 target
 velocity.log
