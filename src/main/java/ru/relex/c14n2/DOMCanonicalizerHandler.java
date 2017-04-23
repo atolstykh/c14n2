@@ -83,6 +83,9 @@ class DOMCanonicalizerHandler {
         this.outputBuffer = outputBuffer;
         this.excludeList = excludeList;
         this.declaredPrefixes = new PrefixesContainer();
+
+
+
         this.usedPrefixes = new PrefixesContainer();
         this.qNameAwareElements = new HashSet<String>();
         this.qNameAwareQualifiedAttrs = new HashSet<String>();
@@ -308,7 +311,7 @@ class DOMCanonicalizerHandler {
     private String getNamespaceURIByPrefix(String prefix) {
         String uri = declaredPrefixes.getByFirstKey(prefix);
         if (uri == null) {
-            LOGGER.error("BAG!!");
+            LOGGER.error("BUG!!");
             throw new RuntimeException();
         }
         return uri;
@@ -1019,6 +1022,9 @@ class DOMCanonicalizerHandler {
             }
 
         }
+        depth++;
+        // HACK <Body xmlns="http://schemas.xmlsoap.org/soap/envelope/" ..> but node.name=SOAP-ENV:Body ???
+        this.declaredPrefixes.definePrefix("SOAP-ENV", "http://schemas.xmlsoap.org/soap/envelope/", -depth);
 
     }
 
