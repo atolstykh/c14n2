@@ -728,7 +728,11 @@ class DOMCanonicalizerHandler {
                     addVisibilityIfNessesaryByText(qName, text, nsDeclarations, qNameAwareQualifiedAttrs);
                 }
 
-                addNSDeclarationForPrefix(prfx, nsDeclarations);
+              //  addNSDeclarationForPrefix(prfx, nsDeclarations);
+              if(!prfx.isEmpty()) {
+              addNSDeclarationForPrefix(prfx, nsDeclarations);
+              }
+
             }
         }
 
