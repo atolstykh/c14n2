@@ -5,7 +5,7 @@ build
 classes
 target
 velocity.log
-
+.gradle
 #for Eclipse
 .settings
 .classpath
