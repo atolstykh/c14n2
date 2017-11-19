@@ -387,31 +387,6 @@ public class CanonicalizerTest {
         return processTest(testNumber, inFileName, paramName, null);
     }
 
-
-    /*
-     *********************
-
-        Temp method
-
-     *********************
-     */
-
-    @Test
-    public void getPath() {
-        try {
-            String path = CanonicalizerTest.class.getProtectionDomain()
-                    .getCodeSource().getLocation().getPath();
-            System.out.println(path);
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-            Document doc = dBuilder.parse(new FileInputStream(path + "inC14N1" + ".xml"));
-            Node node = doc.getDocumentElement();
-        }
-        catch (Exception x) {
-            x.printStackTrace();
-        }
-    }
-
     private static boolean processTest(String testNumber, String inFileName,
                                        String paramName, ICanonicalizerExcludeList iExcludeList) {
         try {
@@ -430,8 +405,16 @@ public class CanonicalizerTest {
 
             //dBuilder.setEntityResolver(entityResolver);
 
-            String path = CanonicalizerTest.class.getProtectionDomain()
+            /*
+
+            работает с maven, не работает с gradle
+
+                String path = CanonicalizerTest.class.getProtectionDomain()
                     .getCodeSource().getLocation().getPath();
+            */
+
+            String path = CanonicalizerTest.class.getProtectionDomain().getClassLoader().getResource(inFileName+".xml").getPath();
+            path = path.substring(0, path.indexOf(inFileName));
 
             Document doc = dBuilder.parse(new FileInputStream(path + inFileName
                     + ".xml"));
