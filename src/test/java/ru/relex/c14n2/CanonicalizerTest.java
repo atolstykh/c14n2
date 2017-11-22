@@ -1,21 +1,24 @@
 package ru.relex.c14n2;
 
+import org.apache.xml.serializer.utils.DOM2Helper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.w3c.dom.*;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 import ru.relex.c14n2.util.Parameters;
 import ru.relex.c14n2.util.QNameAwareParameter;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CanonicalizerTest {
 
-    @Test(threadPoolSize = 10, invocationCount = 1000, invocationTimeOut = 0)
+    @Test(threadPoolSize = 10, invocationCount = 1000, invocationTimeOut = 0) //, expectedExceptions = {NullPointerException.class, AssertionError.class})
     public void testMultiThread() {
 /* not implemented    testN1Default();
     testN1Comment(); */
@@ -63,7 +66,6 @@ public class CanonicalizerTest {
     // }
 //
 
-
     @Test
     public void testN2Default() {
         Assert.assertTrue(processTest("3", "inC14N2", "c14nDefault"));
@@ -92,6 +94,12 @@ public class CanonicalizerTest {
     //
     // work with PVDNP_MODE=false
     //
+
+    @Test
+    public void testTemp() {
+        Assert.assertTrue(processTest("34f", "inC14N2", "c14nDefault"));
+    }
+
     @Test
     public void testN3Prefix() {
         Assert.assertTrue(processTest("6", "inC14N3", "c14nPrefix"));
@@ -382,11 +390,31 @@ public class CanonicalizerTest {
     private static boolean processTest(String testNumber, String inFileName,
                                        String paramName, ICanonicalizerExcludeList iExcludeList) {
         try {
+            /*EntityResolver entityResolver = new EntityResolver() {
+                @Override
+                public InputSource resolveEntity(String publicId, String systemId)
+                        throws SAXException, IOException {
+                    if (systemId.contains("doc.dtd")) {
+                        return new InputSource(new ByteArrayInputStream("<?xml version='1.0' encoding='UTF-8'?>".getBytes()));
+                    } else
+                        return null;
+                }
+            };*/
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 
-            String path = CanonicalizerTest.class.getProtectionDomain()
+            //dBuilder.setEntityResolver(entityResolver);
+
+            /*
+
+            работает с maven, не работает с gradle
+
+                String path = CanonicalizerTest.class.getProtectionDomain()
                     .getCodeSource().getLocation().getPath();
+            */
+
+            String path = CanonicalizerTest.class.getProtectionDomain().getClassLoader().getResource(inFileName+".xml").getPath();
+            path = path.substring(0, path.indexOf(inFileName));
 
             Document doc = dBuilder.parse(new FileInputStream(path + inFileName
                     + ".xml"));

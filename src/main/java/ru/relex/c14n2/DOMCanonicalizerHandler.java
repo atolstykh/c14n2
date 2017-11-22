@@ -924,10 +924,9 @@ class DOMCanonicalizerHandler {
         // happens: <Signature  xmlns="http://www.w3.org/2000/09/xmldsig#">
         String prfxEl = getNodePrefix(node);
         String uri = node.getNamespaceURI();
-        if (prfxEl.equals("") && !uri.equals("")){
+        if (prfxEl.equals("") && uri!=null && !uri.equals("")){
             declaredPrefixes.definePrefix(prfxEl,uri,nodeDepth);
         }
-
     }
 
 
