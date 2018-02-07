@@ -1,14 +1,33 @@
 # Old temorary source copies
 *.orig
 *~
-
+build
 classes
 target
 velocity.log
-
+.gradle
 #for Eclipse
 .settings
 .classpath
 .project
 .metadata
 
+# IDE project files
+*.iml
+*.ipr
+*.iws
+*.kdevelop
+*.kdevelop.pcs
+*.kdevelop.filelist
+*.kdevses
+*.kdev4
+*.cbp
+*.pro.user
+.idea
+CMakeLists.txt.user
+Doxyfile
+classes
+target
+temp
+jbiServiceUnits
+out
